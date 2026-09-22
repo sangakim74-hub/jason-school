@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jason School Review Build 2026-09-21</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0b0b0b}
+.wrap{max-width:760px;margin:auto;padding:18px 22px 42px}.head{font-size:34px;font-weight:900;margin:4px 0 2px}.sync{text-align:center;color:#777;font-weight:700;margin:2px 0 8px;font-size:14px}
+.tabs{display:flex;gap:12px}.tab{flex:1;border:0;border-radius:24px;background:#fff;padding:13px 10px;font-size:20px;font-weight:900;color:#3488ff;min-height:56px}.active{outline:4px solid #111}
+.date{font-size:22px;font-weight:900;margin:20px 0 7px}.day{font-size:20px;color:#777;font-weight:900;margin-bottom:14px}
+.card{background:#fff;border-radius:24px;padding:6px 18px;margin:8px 0}.row{display:flex;align-items:center;gap:12px;padding:8px 0;font-size:20px;font-weight:900;border-bottom:1px solid #e1e1e1;min-height:52px}.row:last-child{border-bottom:0}
+.cb{appearance:none;width:42px;height:42px;border:3px solid #222;border-radius:13px;flex:0 0 42px;background:white}.cb:checked{background:#32c45b;position:relative}.cb:checked:after{content:"✓";display:block;text-align:center;color:white;font-size:31px;line-height:37px;font-weight:900}
+.sub{margin-left:52%;padding-left:0;font-size:15px;font-weight:700;color:#46546a;min-height:34px;margin-top:-44px;border-bottom:0}
+.sub .cb{width:34px;height:34px;flex-basis:34px;border-width:3px;border-radius:11px}
+.sub .cb:checked:after{font-size:25px;line-height:29px}.group-title{font-size:13px;font-weight:900;color:#777;margin:5px 0 0 66px}.daily{margin-left:8px}.weather{font-size:17px;font-weight:800;color:#444;margin:4px 0 12px}.weather.rain{color:#1d6db5}.home{font-size:25px;font-weight:900}.none{font-size:20px;color:#888;font-weight:900;margin-top:10px}
+.auth{display:none;background:#fff;border-radius:24px;padding:18px;margin:14px 0;text-align:center}.auth button,.reload{border:0;border-radius:18px;background:#3488ff;color:#fff;font-size:20px;font-weight:900;padding:13px 22px}.authmsg{font-size:18px;font-weight:700;color:#555;margin-bottom:12px}.fatal{background:#fff3cd;border-radius:18px;padding:14px;font-weight:700;margin:12px 0;display:none}
+.meta{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:15px 0 5px}.meta .date{margin:0}.meta .weather{margin:0}.schooltime{font-size:17px;font-weight:800;color:#555;margin:0 0 9px}
+@media(max-width:520px){.wrap{padding:12px 15px 28px}.head{font-size:28px}.sync{font-size:12px;margin:0 0 6px}.tabs{gap:8px}.tab{padding:10px 7px;min-height:47px;font-size:17px;border-radius:18px}.active{outline-width:3px}.meta{margin:12px 0 4px;gap:8px}.date{font-size:20px}.weather{font-size:15px}.day{font-size:18px;margin-bottom:5px}.schooltime{font-size:14px;margin-bottom:7px}.card{padding:6px 15px;border-radius:22px;margin:8px 0}.row{font-size:19px;padding:7px 0;gap:11px;min-height:51px}.cb{width:39px;height:39px;flex-basis:39px;border-width:3px;border-radius:10px}.cb:checked:after{font-size:28px;line-height:34px}.sub{margin-left:25px;padding-left:7px;font-size:16px;min-height:42px;gap:9px}.sub .cb{width:30px;height:30px;flex-basis:30px;border-width:2px;border-radius:8px}.sub .cb:checked:after{font-size:22px;line-height:26px}.group-title{font-size:11px;margin-left:56px}.home{font-size:22px}.none{font-size:18px;margin-top:5px}}
+
+.adminbar{display:none;justify-content:flex-end;margin:6px 0}.adminbar.show{display:flex}.editbtn{border:0;border-radius:14px;background:#111;color:#fff;font-weight:800;padding:8px 13px;font-size:13px}.editor{display:none;background:#fff;border:2px solid #111;border-radius:20px;padding:14px;margin:10px 0}.editor.show{display:block}.editor h2{font-size:19px;margin:0 0 10px}.editor label{display:block;font-size:13px;font-weight:800;color:#555;margin:8px 0 4px}.editor input,.editor select{width:100%;font-size:16px;padding:10px;border:1px solid #bbb;border-radius:10px;background:#fff}.editor-actions{display:flex;gap:8px;margin-top:12px}.editor-actions button{flex:1;border:0;border-radius:12px;padding:10px;font-size:15px;font-weight:900}.savebtn{background:#3488ff;color:#fff}.cancelbtn{background:#eee;color:#111}.custom-remove{margin-left:auto;border:0;background:transparent;color:#b00;font-size:17px}.late{color:#e32929;font-weight:900}.weatherline{display:flex;align-items:center;gap:8px}.umbrella-top{font-size:15px;font-weight:800;color:#444}.daily-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}.daily-grid .row{font-size:15px;font-weight:700;min-height:35px;padding:4px 0}.daily-grid .cb{width:20px;height:20px;flex-basis:20px;border-width:2px;border-radius:4px}.daily-grid .cb:checked:after{font-size:16px;line-height:16px}.home-list .row{font-size:15px;font-weight:600;min-height:32px;padding:3px 0;border:0;margin-left:34px}.home-list .cb{width:20px;height:20px;flex-basis:20px;border-width:2px;border-radius:4px}.home-list .cb:checked:after{font-size:16px;line-height:16px}
+@media(max-width:520px){.sub{margin-left:48%;font-size:12px;min-height:28px;margin-top:-40px}.daily-grid .row{font-size:12px}.home-list .row{font-size:13px;margin-left:26px}}
+</style></head><body><main class="wrap">
+<div class="head">🎒 Jason School</div><div class="sync" id="sync">☁️ Connecting…</div>
+<div class="auth" id="auth"><div class="authmsg" id="authmsg">Sign in once to sync Jason School across devices.</div><button id="login">Sign in</button></div>
+<div class="fatal" id="fatal"></div>
+<div class="adminbar" id="adminbar"><button class="editbtn" id="editbtn">＋ Add / Edit</button></div>
+<div class="editor" id="editor"><h2>Mom Add / Edit</h2><label>Start date</label><input id="editdate" type="date"><label>Add to</label><select id="editcategory"><option value="class">Class special supply</option><option value="homework">Homework</option><option value="todo">Today's To Do</option></select><div id="classpick"><label>Class</label><select id="editclass"><option value="ela">ELA 112</option><option value="math">Math 115</option><option value="pe">PE 202</option><option value="science">Science 418</option><option value="art">Art 127</option><option value="social">Social Science 111</option></select></div><label>Item</label><input id="edittext" placeholder="What needs to be added?"><label>Repeat</label><select id="editscope"><option value="date">One time · this date</option><option value="weekly">Every week</option><option value="biweekly">Every 2 weeks</option><option value="range">Date range</option><option value="always">Keep showing · no end date</option></select><div id="endpick" style="display:none"><label>End date</label><input id="editend" type="date"></div><div id="duepick"><label>Due date (optional)</label><input id="editdue" type="date"></div><div class="editor-actions"><button class="cancelbtn" id="cancelEdit">Cancel</button><button class="savebtn" id="saveEdit">Save</button></div><div id="customManager" style="margin-top:12px"></div></div>
+<div id="app">
+<div class="tabs"><button class="tab active" id="today">Today</button><button class="tab" id="tomorrow">Tomorrow →</button></div>
+<div class="meta"><div class="date" id="date"></div><div class="weatherline"><span class="umbrella-top" id="umbrellaTop"></span><div class="weather" id="weather"></div></div></div><div class="day" id="day"></div><div class="schooltime" id="schooltime"></div><section id="classes" class="card"></section><section id="daily" class="card daily-grid" style="display:none"></section>
+<section class="card"><div class="home">📝 Homework</div><div id="homework" class="none home-list">None</div></section>
+<section class="card" id="returns" style="display:none"><div class="home">📌 Today’s To Do</div><div id="returnItems" class="home-list"></div></section>
+</div></main>
+<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<script>
+const API='https://eizzn21-eizzn-bdffcx.laravel.cloud';
+const CLIENT_ID='01a0b371-adc6-70c4-a0c0-ba4bca2d3355';
+const REDIRECT_URI='https://jason-school.netlify.app/auth/callback';
+const APPLICATION_ID=1;
+const SUPPORTED_SCHEMA_VERSION=1;
+const PUSHER_KEY='B4TSN4yMhbEodaTLQlcP';
+const PUSHER_HOST='ws-a2c61062-6f3e-4c01-b1fd-e29eba8ea832-reverb.laravel.cloud';
+const CALENDAR = {"2026-09-04":"MIN","2026-09-17":"A3","2026-09-18":"B4","2026-09-21":"A5","2026-09-22":"B6","2026-09-23":"LATE","2026-09-24":"A1","2026-09-25":"B2","2026-09-28":"A3","2026-09-29":"B4","2026-09-30":"LATE","2026-10-01":"A5","2026-10-02":"B6","2026-10-05":"A1","2026-10-06":"B2","2026-10-07":"LATE","2026-10-08":"SIX","2026-10-09":"NO","2026-10-12":"A3","2026-10-13":"B4","2026-10-14":"LATE","2026-10-15":"A5","2026-10-16":"B6","2026-10-19":"A1","2026-10-20":"B2","2026-10-21":"LATE","2026-10-22":"A3","2026-10-23":"B4","2026-10-26":"A5","2026-10-27":"B6","2026-10-28":"LATE","2026-10-29":"A1","2026-10-30":"B2","2026-11-02":"A3","2026-11-03":"B4","2026-11-04":"LATE","2026-11-05":"A5","2026-11-06":"B6","2026-11-09":"A1","2026-11-10":"B2","2026-11-11":"NO","2026-11-12":"A3","2026-11-13":"B4","2026-11-16":"A5","2026-11-17":"B6","2026-11-18":"LATE","2026-11-19":"A1","2026-11-20":"B2","2026-11-23":"NO","2026-11-24":"NO","2026-11-25":"NO","2026-11-26":"NO","2026-11-27":"NO","2026-11-30":"A3","2026-12-01":"B4","2026-12-02":"LATE","2026-12-03":"A5","2026-12-04":"B6","2026-12-07":"A1","2026-12-08":"B2","2026-12-09":"LATE","2026-12-10":"A3","2026-12-11":"B4","2026-12-14":"A5","2026-12-15":"B6","2026-12-16":"LATE","2026-12-17":"SIX"};
+const PERIODS = {
+  1:{id:"ela",name:"① ELA 112",items:[]},
+  2:{id:"math",name:"② Math 115",items:[]},
+  3:{id:"pe",name:"③ PE 202",items:[{id:"pe-clothes",name:"👕 PE Clothes"}]},
+  4:{id:"science",name:"④ Science 418",items:[{id:"segment1",name:"📘 Segment 1 Book"},{id:"workbook",name:"📓 Workbook"}]},
+  5:{id:"art",name:"⑤ Art 127",items:[{id:"sketchbook",name:"📓 Sketchbook"},{id:"coloring-supplies",name:"🎨 Coloring Supplies"}]},
+  6:{id:"social",name:"⑥ Social Science 111",items:[]}
+};
+const ORDERS = {A1:[1,3,5],A3:[3,5,1],A5:[5,1,3],B2:[2,4,6],B4:[4,6,2],B6:[6,2,4],SIX:[1,2,3,4,5,6],LATE:[1,2,3,4,5,6]};
+function scheduleFor(ds){
+  const type=CALENDAR[ds];
+  if(!type) return {label:"No School Schedule",classes:[],school:false,lunch:false};
+  if(type==="NO") return {label:"No School",classes:[],school:false,lunch:false,start:null,pickup:null};
+  if(type==="MIN") return {label:"Minimum Day",classes:ORDERS.SIX.map(n=>PERIODS[n]),school:true,lunch:false,start:"8:00 AM",pickup:"11:45 AM"};
+  const label=type==="LATE"?"⏰ Late Start (1 Hour)":type==="SIX"?"6 Period Day":type+" Day";
+  // Regular block days and 6-period days currently show lunch. If the school calendar later marks a no-lunch school day,
+  // set lunch:false for that calendar type/date and Water Bottle will remain while Lunch disappears.
+  return {label,classes:ORDERS[type].map(n=>PERIODS[n]),school:true,lunch:true,start:type==="LATE"?"8:54 AM":"8:00 AM",pickup:"1:55 PM"};
+}
+let offset=0,state={},pusher=null,channel=null,refreshPromise=null,weatherByDate={};
+const WEATHER_LAT=34.00, WEATHER_LON=-117.81;
+function weatherCodeLabel(code){
+ if(code===0)return ['☀️','Clear']; if([1,2].includes(code))return ['🌤️','Partly cloudy']; if(code===3)return ['☁️','Cloudy'];
+ if([45,48].includes(code))return ['🌫️','Fog']; if([51,53,55,56,57].includes(code))return ['🌦️','Drizzle'];
+ if([61,63,65,66,67,80,81,82].includes(code))return ['🌧️','Rain']; if([71,73,75,77,85,86].includes(code))return ['🌨️','Snow'];
+ if([95,96,99].includes(code))return ['⛈️','Thunderstorm']; return ['🌤️','Weather'];
+}
+async function loadWeather(){
+ try{
+  const u='https://api.open-meteo.com/v1/forecast?latitude='+WEATHER_LAT+'&longitude='+WEATHER_LON+'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=7';
+  const r=await fetch(u); if(!r.ok)throw new Error('weather '+r.status); const w=await r.json();
+  const d=w.daily||{}; (d.time||[]).forEach((date,i)=>weatherByDate[date]={code:d.weather_code?.[i],hi:d.temperature_2m_max?.[i],lo:d.temperature_2m_min?.[i],rain:d.precipitation_probability_max?.[i]}); render();
+ }catch(e){weatherByDate={}; render();}
+}
+function renderWeather(ds,s){
+ const el=$('weather'),w=weatherByDate[ds]; if(!w){el.textContent='';$('umbrellaTop').textContent='';return}
+ const [icon,label]=weatherCodeLabel(w.code),rain=Number(w.rain||0);
+ el.classList.toggle('rain',rain>=30); $('umbrellaTop').textContent=rain>=30?'☂️ Umbrella':''; el.textContent=`${icon} ${label} · ${Math.round(w.hi)}°/${Math.round(w.lo)}°F`;
+}
+function dailyItems(ds,s){
+ if(!s.school)return []; const w=weatherByDate[ds],hot=w&&Number(w.hi||0)>=80,rain=w&&Number(w.rain||0)>=30;
+ const a=[]; if(s.lunch)a.push({id:'lunch',name:'🥪 Lunch'}); a.push({id:'water-bottle',name:'💧 Water Bottle'},{id:'phone',name:'📱 Phone'});
+ if(hot)a.push({id:'hand-fan',name:'🪭 Handheld Fan'},{id:'neck-fan',name:'🎧 Neck Fan'});
+ if(rain)a.push({id:'umbrella',name:'☂️ Umbrella'});
+ a.push({id:'folder',name:'📁 Folder'},{id:'pencil-case',name:'🗂️ Pencil Case'},{id:'planner',name:'📓 Binder Reminder'}); return a;
+}
+
+const $=id=>document.getElementById(id);
+function iso(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`}
+function target(){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d}
+function key(date,id){return date+"::"+id}
+function setSync(t){$("sync").textContent=t}
+function showAuth(msg){$("auth").style.display="block";$("authmsg").textContent=msg||"Sign in once to sync Jason School across devices.";setSync("🔐 Sign in required")}
+function hideAuth(){$("auth").style.display="none"}
+function showFatal(html){$("fatal").style.display="block";$("fatal").innerHTML=html}
+function clearFatal(){$("fatal").style.display="none";$("fatal").textContent=""}
+function randomUrlSafe(bytes=48){const a=new Uint8Array(bytes);crypto.getRandomValues(a);return Array.from(a,b=>('0'+b.toString(16)).slice(-2)).join('')}
+function base64url(buf){let s='';new Uint8Array(buf).forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function beginLogin(){
+ const verifier=randomUrlSafe(48),stateVal=randomUrlSafe(24);
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
+ const challenge=base64url(digest);
+ sessionStorage.setItem('pkce_code_verifier',verifier);sessionStorage.setItem('oauth_state',stateVal);
+ const q=new URLSearchParams({client_id:CLIENT_ID,redirect_uri:REDIRECT_URI,response_type:'code',scope:'',state:stateVal,code_challenge:challenge,code_challenge_method:'S256'});
+ window.location.href=API+'/oauth/authorize?'+q.toString();
+}
+async function finishLoginIfNeeded(){
+ if(window.location.pathname!='/auth/callback')return false;
+ setSync('🔐 Finishing sign-in…');
+ const q=new URLSearchParams(window.location.search),err=q.get('error');
+ if(err){showAuth('Sign-in was cancelled or failed. Please try again.');history.replaceState({},'', '/');return true}
+ const code=q.get('code'),returned=q.get('state'),expected=sessionStorage.getItem('oauth_state'),verifier=sessionStorage.getItem('pkce_code_verifier');
+ if(!code||!returned||!expected||returned!==expected||!verifier){sessionStorage.removeItem('oauth_state');sessionStorage.removeItem('pkce_code_verifier');showAuth('Sign-in verification failed. Please try again.');history.replaceState({},'', '/');return true}
+ try{
+  const r=await fetch(API+'/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams({grant_type:'authorization_code',client_id:CLIENT_ID,redirect_uri:REDIRECT_URI,code,code_verifier:verifier})});
+  const data=await r.json();if(!r.ok||!data.access_token)throw new Error(data.error_description||'Token exchange failed');
+  localStorage.setItem('access_token',data.access_token);localStorage.setItem('refresh_token',data.refresh_token);
+  sessionStorage.removeItem('oauth_state');sessionStorage.removeItem('pkce_code_verifier');history.replaceState({},'', '/');hideAuth();return true;
+ }catch(e){showAuth('Could not finish sign-in. Please try again.');history.replaceState({},'', '/');return true}
+}
+async function refreshToken(){
+ if(refreshPromise)return refreshPromise;
+ refreshPromise=(async()=>{const rt=localStorage.getItem('refresh_token');if(!rt)throw new Error('no refresh token');
+  const r=await fetch(API+'/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams({grant_type:'refresh_token',refresh_token:rt,client_id:CLIENT_ID})});
+  const d=await r.json();if(!r.ok||!d.access_token)throw new Error('refresh failed');localStorage.setItem('access_token',d.access_token);localStorage.setItem('refresh_token',d.refresh_token);return d.access_token;
+ })().finally(()=>refreshPromise=null);return refreshPromise;
+}
+async function apiFetch(path,options={},retry=true){
+ let token=localStorage.getItem('access_token');if(!token)throw new Error('AUTH_REQUIRED');
+ const headers=new Headers(options.headers||{});headers.set('Authorization','Bearer '+token);headers.set('Accept','application/json');
+ let r=await fetch(API+path,{...options,headers});
+ if(r.status===401&&retry){try{token=await refreshToken();headers.set('Authorization','Bearer '+token);r=await fetch(API+path,{...options,headers})}catch(e){localStorage.removeItem('access_token');localStorage.removeItem('refresh_token');disconnectRealtime();showAuth('Your sign-in expired. Please sign in again.');throw new Error('AUTH_REQUIRED')}}
+ return r;
+}
+function normalizePayload(data){
+ if(!data||typeof data!=='object')return {};
+ const v=Number(data.schema_version||0);
+ if(v>SUPPORTED_SCHEMA_VERSION){showFatal('This page needs to be refreshed to see the latest changes. <button class="reload" onclick="window.location.reload()">Reload</button>');return null}
+ clearFatal();return (data.checklist&&typeof data.checklist==='object')?data.checklist:{};
+}
+function handleIncomingData(data){const next=normalizePayload(data);if(next===null)return;state=next;localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Synced • Live')}
+async function fetchLatest(){
+ try{const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');if(r.status===403){showFatal('This account does not have access to Jason School sync.');setSync('⚠️ Access denied');return}if(!r.ok)throw new Error('GET '+r.status);const body=await r.json();
+  if(body.data===null){state=JSON.parse(localStorage.getItem('jason-v3')||'{}');await postState();}else handleIncomingData(body.data);
+ }catch(e){if(e.message!=='AUTH_REQUIRED'){setSync('⚠️ Sync unavailable');state=JSON.parse(localStorage.getItem('jason-v3')||'{}');render()}}
+}
+async function postState(){
+ const payload={schema_version:SUPPORTED_SCHEMA_VERSION,checklist:state};
+ const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:payload})});
+ if(r.status===403){showFatal('This account does not have permission to update Jason School.');throw new Error('403')}if(r.status===422)throw new Error('Invalid sync data');if(!r.ok)throw new Error('POST '+r.status);setSync('☁️ Synced • Live');return r.json();
+}
+async function save(k,v){state[k]=v;localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
+function disconnectRealtime(){if(pusher){try{pusher.disconnect()}catch(e){}}pusher=null;channel=null}
+function connectRealtime(){
+ disconnectRealtime();const accessToken=localStorage.getItem('access_token');if(!accessToken)return;
+ pusher=new Pusher(PUSHER_KEY,{wsHost:PUSHER_HOST,wsPort:443,wssPort:443,forceTLS:true,enabledTransports:['ws','wss'],cluster:'mt1',authorizer:(ch)=>({authorize:async(socketId,callback)=>{try{const r=await apiFetch('/broadcasting/auth',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({socket_id:socketId,channel_name:ch.name})});const d=await r.json();if(!r.ok)throw d;callback(false,d)}catch(e){callback(true,e)}}})});
+ pusher.connection.bind('connecting',()=>setSync('☁️ Connecting…'));
+ pusher.connection.bind('error',()=>setSync('⚠️ Live sync reconnecting…'));
+ channel=pusher.subscribe('private-app-data.1');
+ channel.bind('pusher:subscription_succeeded',async()=>{setSync('☁️ Synced • Live');await fetchLatest()});
+ channel.bind('pusher:subscription_error',()=>setSync('⚠️ Live sync unavailable'));
+ channel.bind('app-data.updated',(payload)=>{if(payload&&payload.data)handleIncomingData(payload.data)});
+}
+function customData(){if(!state.__custom||typeof state.__custom!=="object")state.__custom={items:[]};if(!Array.isArray(state.__custom.items))state.__custom.items=[];return state.__custom.items}
+function dayDiff(a,b){const A=new Date(a+'T12:00:00'),B=new Date(b+'T12:00:00');return Math.round((B-A)/86400000)}
+function customVisibleOn(x,ds){
+ if(x.scope==='always')return !x.date||ds>=x.date;
+ if(x.scope==='date')return x.date===ds;
+ if(x.scope==='range')return ds>=x.date&&(!x.end||ds<=x.end);
+ const d=dayDiff(x.date,ds); if(d<0)return false;
+ if(x.scope==='weekly')return d%7===0;
+ if(x.scope==='biweekly')return d%14===0;
+ return false;
+}
+function visibleCustom(ds,category,classId){return customData().filter(x=>x.category===category&&(!classId||x.classId===classId)&&customVisibleOn(x,ds))}
+function customLabel(x){return x.name+(x.due?' · Due '+x.due:'')}
+function customBox(ds,x){return box(ds,'custom-'+x.id,customLabel(x),true)}
+function renderCustomList(ds,category,targetId){const arr=visibleCustom(ds,category);const el=$(targetId);if(!arr.length){if(category==='homework'){el.className='none home-list';el.textContent='None'}return}el.className='home-list';el.innerHTML=arr.map(x=>box(ds,'custom-'+x.id,customLabel(x),true)).join('')}
+function manager(){const el=$('customManager'),arr=customData(); if(!arr.length){el.innerHTML='<small>No added items yet.</small>';return} el.innerHTML='<b>Saved items</b>'+arr.map(x=>`<div style="display:flex;gap:6px;align-items:center;border-top:1px solid #ddd;padding:7px 0"><span style="flex:1;font-size:12px">${x.name}</span><button type="button" onclick="editCustom(\'${x.id}\')">Edit</button><button type="button" onclick="removeCustom(\'${x.id}\')">Delete</button></div>`).join('')}
+let editingId=null;
+function editCustom(id){const x=customData().find(i=>i.id===id);if(!x)return;editingId=id;$('editdate').value=x.date||iso(target());$('editcategory').value=x.category;$('editclass').value=x.classId||'ela';$('edittext').value=x.name;$('editscope').value=x.scope||'date';$('editend').value=x.end||'';$('editdue').value=x.due||'';editorVisibility();}
+async function removeCustom(id){state.__custom.items=customData().filter(x=>x.id!==id);localStorage.setItem('jason-v3',JSON.stringify(state));manager();render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
+async function addCustom(){const name=$('edittext').value.trim();if(!name)return;const category=$('editcategory').value,ds=$('editdate').value||iso(target()),scope=$('editscope').value,classId=category==='class'?$('editclass').value:null,end=$('editend').value||null,due=$('editdue').value||null;const obj={id:editingId||Date.now().toString(36),name,category,classId,date:ds,scope,end,due};if(editingId){const n=customData().findIndex(x=>x.id===editingId);if(n>=0)state.__custom.items[n]=obj}else customData().push(obj);editingId=null;$('edittext').value='';$('editend').value='';$('editdue').value='';$('editor').classList.remove('show');localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
+function editorVisibility(){$('classpick').style.display=$('editcategory').value==='class'?'block':'none';$('endpick').style.display=$('editscope').value==='range'?'block':'none';manager()}
+function setupAdmin(){const q=new URLSearchParams(location.search);if(q.get('admin')==='1')localStorage.setItem('jason-admin','1');if(q.get('admin')==='0')localStorage.removeItem('jason-admin');const on=localStorage.getItem('jason-admin')==='1';$('adminbar').classList.toggle('show',on);$('editbtn').onclick=()=>{editingId=null;$('editdate').value=iso(target());$('editor').classList.toggle('show');editorVisibility()};$('cancelEdit').onclick=()=>{$('editor').classList.remove('show');editingId=null};$('saveEdit').onclick=addCustom;$('editcategory').onchange=editorVisibility;$('editscope').onchange=editorVisibility}
+function mondayOf(ds){const d=new Date(ds+'T12:00:00'),n=d.getDay(),delta=n===0?-6:1-n;d.setDate(d.getDate()+delta);return iso(d)}
+function firstClassDateThisWeek(ds,classId){let d=new Date(mondayOf(ds)+'T12:00:00');for(let i=0;i<7;i++){const x=iso(d),s=scheduleFor(x);if(s.classes.some(c=>c.id===classId))return x;d.setDate(d.getDate()+1)}return null}
+function builtInHomework(ds,s){const a=[];if(s.school)a.push({id:'ela-reading',name:'📚 ELA · Read 15 min + Reading Log'});if(s.classes.some(c=>c.id==='ela')&&firstClassDateThisWeek(ds,'ela')===ds)a.push({id:'ela-log',name:'📝 ELA · Turn in Reading Log + Get new form'});return a}
+function render(){const d=target(),ds=iso(d),s=scheduleFor(ds);$('today').classList.toggle('active',offset===0);$('tomorrow').classList.toggle('active',offset===1);$('date').textContent=(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+' · '+d.toLocaleDateString('en-US',{weekday:'long'});$('day').textContent=s.label;$('day').classList.toggle('late',CALENDAR[ds]==='LATE');renderWeather(ds,s);$('schooltime').textContent=s.school?`🏫 ${s.start}  •  🚗 ${s.pickup} · Office Pickup`:'';const di=dailyItems(ds,s);$('daily').style.display=di.length?'grid':'none';$('daily').innerHTML=di.length?di.map(i=>box(ds,'daily-'+i.id,i.name,true)).join(''):'';$('classes').innerHTML=s.classes.length?s.classes.map(c=>box(ds,'class-'+c.id,c.name)+c.items.map(i=>box(ds,'item-'+c.id+'-'+i.id,i.name,true)).join('')+visibleCustom(ds,'class',c.id).map(x=>customBox(ds,x)).join('')).join(''):'<div class="home">No classes scheduled</div>';const bh=builtInHomework(ds,s),ch=visibleCustom(ds,'homework');const he=$('homework');if(!bh.length&&!ch.length){he.className='none home-list';he.textContent='None'}else{he.className='home-list';he.innerHTML=bh.map(x=>box(ds,'builtin-'+x.id,x.name,true)).join('')+ch.map(x=>box(ds,'custom-'+x.id,customLabel(x),true)).join('')}const todos=visibleCustom(ds,'todo');$('returns').style.display=todos.length?'block':'none';$('returnItems').innerHTML=todos.map(x=>box(ds,'custom-'+x.id,x.name,true)).join('');document.querySelectorAll('.cb').forEach(x=>x.onchange=()=>save(x.dataset.k,x.checked))}
+async function start(){setupAdmin();render();loadWeather();$("login").onclick=beginLogin;await finishLoginIfNeeded();if(!localStorage.getItem('access_token')){showAuth();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');render();return}hideAuth();await fetchLatest();connectRealtime()}
+$("today").onclick=()=>{offset=0;render()};$("tomorrow").onclick=()=>{offset=1;render()};start();
+</script></body></html>
