@@ -1,1 +1,1 @@
-{"name":"jason-school-review-2","version":"1.0.0","private":true,"scripts":{"start":"npx serve ."}}
+{"name":"jason-school","version":"1.0.2","private":true,"scripts":{"start":"npx serve ."}}

@@ -66,7 +66,7 @@ const API='https://eizzn21-eizzn-bdffcx.laravel.cloud';
 const CLIENT_ID='01a0b371-adc6-70c4-a0c0-ba4bca2d3355';
 const REDIRECT_URI='https://jason-school.netlify.app/auth/callback';
 const APPLICATION_ID=1;
-const SUPPORTED_SCHEMA_VERSION=1;
+const SUPPORTED_SCHEMA_VERSION=2;
 const PUSHER_KEY='B4TSN4yMhbEodaTLQlcP';
 const PUSHER_HOST='ws-a2c61062-6f3e-4c01-b1fd-e29eba8ea832-reverb.laravel.cloud';
 const CALENDAR = {"2026-09-04":"MIN","2026-09-17":"A3","2026-09-18":"B4","2026-09-21":"A5","2026-09-22":"B6","2026-09-23":"LATE","2026-09-24":"A1","2026-09-25":"B2","2026-09-28":"A3","2026-09-29":"B4","2026-09-30":"LATE","2026-10-01":"A5","2026-10-02":"B6","2026-10-05":"A1","2026-10-06":"B2","2026-10-07":"LATE","2026-10-08":"SIX","2026-10-09":"NO","2026-10-12":"A3","2026-10-13":"B4","2026-10-14":"LATE","2026-10-15":"A5","2026-10-16":"B6","2026-10-19":"A1","2026-10-20":"B2","2026-10-21":"LATE","2026-10-22":"A3","2026-10-23":"B4","2026-10-26":"A5","2026-10-27":"B6","2026-10-28":"LATE","2026-10-29":"A1","2026-10-30":"B2","2026-11-02":"A3","2026-11-03":"B4","2026-11-04":"LATE","2026-11-05":"A5","2026-11-06":"B6","2026-11-09":"A1","2026-11-10":"B2","2026-11-11":"NO","2026-11-12":"A3","2026-11-13":"B4","2026-11-16":"A5","2026-11-17":"B6","2026-11-18":"LATE","2026-11-19":"A1","2026-11-20":"B2","2026-11-23":"NO","2026-11-24":"NO","2026-11-25":"NO","2026-11-26":"NO","2026-11-27":"NO","2026-11-30":"A3","2026-12-01":"B4","2026-12-02":"LATE","2026-12-03":"A5","2026-12-04":"B6","2026-12-07":"A1","2026-12-08":"B2","2026-12-09":"LATE","2026-12-10":"A3","2026-12-11":"B4","2026-12-14":"A5","2026-12-15":"B6","2026-12-16":"LATE","2026-12-17":"SIX"};
@@ -126,10 +126,29 @@ function dailyItems(ds,s){
 const $=id=>document.getElementById(id);
 function iso(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`}
 function target(){if(testDate)return new Date(testDate+'T12:00:00');let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d}
-function key(date,id){return date+"::"+id}
+function ensureStateShape(){
+ if(!state||typeof state!=='object')state={};
+ if(!state.dates||typeof state.dates!=='object'||Array.isArray(state.dates))state.dates={};
+ return state;
+}
+function dateItems(date){ensureStateShape();if(!state.dates[date]||typeof state.dates[date]!=='object')state.dates[date]={};return state.dates[date]}
 function box(date,id,name,sub=false){
- const k=key(date,id),checked=state[k]===true?' checked':'';
- return `<div class="row${sub?' sub':''}"><input class="cb" type="checkbox" data-k="${k}"${checked}><span>${name}</span></div>`;
+ const checked=dateItems(date)[id]===true?' checked':'';
+ return `<div class="row${sub?' sub':''}"><input class="cb" type="checkbox" data-date="${date}" data-id="${id}"${checked}><span>${name}</span></div>`;
+}
+function pruneOldDates(){
+ ensureStateShape();const cutoff=new Date();cutoff.setHours(0,0,0,0);cutoff.setMonth(cutoff.getMonth()-1);
+ for(const ds of Object.keys(state.dates)){const d=new Date(ds+'T12:00:00');if(!Number.isNaN(d.getTime())&&d<cutoff)delete state.dates[ds]}
+}
+function migrateLegacyChecklist(old){
+ const next={dates:{}};
+ if(!old||typeof old!=='object')return next;
+ for(const [k,v] of Object.entries(old)){
+  if(k==='__custom'||k==='__daily'){next[k]=v;continue}
+  const m=/^(\d{4}-\d{2}-\d{2})::(.+)$/.exec(k);
+  if(m){if(!next.dates[m[1]])next.dates[m[1]]={};next.dates[m[1]][m[2]]=v}
+ }
+ return next;
 }
 function setSync(t){$("sync").textContent=t}
 function showAuth(msg){$("auth").style.display="block";$("authmsg").textContent=msg||"Sign in once to sync Jason School across devices.";setSync("🔐 Sign in required")}
@@ -178,20 +197,22 @@ function normalizePayload(data){
  if(!data||typeof data!=='object')return {};
  const v=Number(data.schema_version||0);
  if(v>SUPPORTED_SCHEMA_VERSION){showFatal('This page needs to be refreshed to see the latest changes. <button class="reload" onclick="window.location.reload()">Reload</button>');return null}
- clearFatal();return (data.checklist&&typeof data.checklist==='object')?data.checklist:{};
+ clearFatal();const checklist=(data.checklist&&typeof data.checklist==='object')?data.checklist:{};
+ const next=v<2?migrateLegacyChecklist(checklist):checklist;state=next;pruneOldDates();return state;
 }
 function handleIncomingData(data){const next=normalizePayload(data);if(next===null)return;state=next;localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Synced • Live')}
 async function fetchLatest(){
  try{const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');if(r.status===403){showFatal('This account does not have access to Jason School sync.');setSync('⚠️ Access denied');return}if(!r.ok)throw new Error('GET '+r.status);const body=await r.json();
-  if(body.data===null){state=JSON.parse(localStorage.getItem('jason-v3')||'{}');await postState();}else handleIncomingData(body.data);
+  if(body.data===null){state=JSON.parse(localStorage.getItem('jason-v3')||'{}');if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();await postState();}else handleIncomingData(body.data);
  }catch(e){if(e.message!=='AUTH_REQUIRED'){setSync('⚠️ Sync unavailable');state=JSON.parse(localStorage.getItem('jason-v3')||'{}');render()}}
 }
 async function postState(){
+ pruneOldDates();
  const payload={schema_version:SUPPORTED_SCHEMA_VERSION,checklist:state};
  const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:payload})});
  if(r.status===403){showFatal('This account does not have permission to update Jason School.');throw new Error('403')}if(r.status===422)throw new Error('Invalid sync data');if(!r.ok)throw new Error('POST '+r.status);setSync('☁️ Synced • Live');return r.json();
 }
-async function save(k,v){state[k]=v;localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
+async function save(date,id,v){dateItems(date)[id]=v;pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
 function disconnectRealtime(){if(pusher){try{pusher.disconnect()}catch(e){}}pusher=null;channel=null}
 function connectRealtime(){
  disconnectRealtime();const accessToken=localStorage.getItem('access_token');if(!accessToken)return;
@@ -231,7 +252,7 @@ function setupAdmin(){const q=new URLSearchParams(location.search);if(q.get('adm
 function mondayOf(ds){const d=new Date(ds+'T12:00:00'),n=d.getDay(),delta=n===0?-6:1-n;d.setDate(d.getDate()+delta);return iso(d)}
 function firstClassDateThisWeek(ds,classId){let d=new Date(mondayOf(ds)+'T12:00:00');for(let i=0;i<7;i++){const x=iso(d),s=scheduleFor(x);if(s.classes.some(c=>c.id===classId))return x;d.setDate(d.getDate()+1)}return null}
 function builtInHomework(ds,s){const a=[];if(s.classes.some(c=>c.id==='ela')&&firstClassDateThisWeek(ds,'ela')===ds)a.push({id:'ela-log',name:'📝 ELA · Turn in last week Reading Log + Get new form'});return a}
-function render(){const d=target(),ds=iso(d),s=scheduleFor(ds);$('today').classList.toggle('active',!testDate&&offset===0);$('tomorrow').classList.toggle('active',!testDate&&offset===1);$('date').textContent=(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+' · '+d.toLocaleDateString('en-US',{weekday:'long'});$('day').textContent=s.label;$('day').classList.toggle('late',CALENDAR[ds]==='LATE');renderWeather(ds,s);$('schooltime').textContent=s.school?`🏫 ${s.start}  •  🚗 ${s.pickup} · Office Pickup`:'';const di=dailyItems(ds,s);$('daily').style.display=di.length?'grid':'none';$('daily').innerHTML=di.length?di.map(i=>'<div class="daily-cell '+(i.col||'')+'">'+box(ds,'daily-'+i.id,i.name,true)+'</div>').join(''):'';$('classes').innerHTML=s.classes.length?s.classes.map(c=>'<div class="class-group"><div class="class-main">'+box(ds,'class-'+c.id,c.name)+'</div><div class="class-supplies">'+c.items.map(i=>box(ds,'item-'+c.id+'-'+i.id,i.name,true)).join('')+visibleCustom(ds,'class',c.id).map(x=>customBox(ds,x)).join('')+'</div></div>').join(''):'<div class="home">No classes scheduled</div>';const bh=builtInHomework(ds,s),ch=visibleCustom(ds,'homework');const he=$('homework');if(!bh.length&&!ch.length){he.className='none home-list';he.textContent='None'}else{he.className='home-list';he.innerHTML=bh.map(x=>box(ds,'builtin-'+x.id,x.name,true)).join('')+ch.map(x=>box(ds,'custom-'+x.id,customLabel(x),true)).join('')}const todos=visibleCustom(ds,'todo');$('returns').style.display=todos.length?'block':'none';$('returnItems').innerHTML=todos.map(x=>box(ds,'custom-'+x.id,x.name,true)).join('');document.querySelectorAll('.cb').forEach(x=>x.onchange=()=>save(x.dataset.k,x.checked))}
-async function start(){localStorage.setItem('jason-admin','1');setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');hideAuth();render();loadWeather();$("login").onclick=beginLogin;setSync('📱 Preview · This phone');if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('📱 Preview · This phone')}}}
+function render(){const d=target(),ds=iso(d),s=scheduleFor(ds);$('today').classList.toggle('active',!testDate&&offset===0);$('tomorrow').classList.toggle('active',!testDate&&offset===1);$('date').textContent=(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+' · '+d.toLocaleDateString('en-US',{weekday:'long'});$('day').textContent=s.label;$('day').classList.toggle('late',CALENDAR[ds]==='LATE');renderWeather(ds,s);$('schooltime').textContent=s.school?`🏫 ${s.start}  •  🚗 ${s.pickup} · Office Pickup`:'';const di=dailyItems(ds,s);$('daily').style.display=di.length?'grid':'none';$('daily').innerHTML=di.length?di.map(i=>'<div class="daily-cell '+(i.col||'')+'">'+box(ds,'daily-'+i.id,i.name,true)+'</div>').join(''):'';$('classes').innerHTML=s.classes.length?s.classes.map(c=>'<div class="class-group"><div class="class-main">'+box(ds,'class-'+c.id,c.name)+'</div><div class="class-supplies">'+c.items.map(i=>box(ds,'item-'+c.id+'-'+i.id,i.name,true)).join('')+visibleCustom(ds,'class',c.id).map(x=>customBox(ds,x)).join('')+'</div></div>').join(''):'<div class="home">No classes scheduled</div>';const bh=builtInHomework(ds,s),ch=visibleCustom(ds,'homework');const he=$('homework');if(!bh.length&&!ch.length){he.className='none home-list';he.textContent='None'}else{he.className='home-list';he.innerHTML=bh.map(x=>box(ds,'builtin-'+x.id,x.name,true)).join('')+ch.map(x=>box(ds,'custom-'+x.id,customLabel(x),true)).join('')}const todos=visibleCustom(ds,'todo');$('returns').style.display=todos.length?'block':'none';$('returnItems').innerHTML=todos.map(x=>box(ds,'custom-'+x.id,x.name,true)).join('');document.querySelectorAll('.cb').forEach(x=>x.onchange=()=>save(x.dataset.date,x.dataset.id,x.checked))}
+async function start(){localStorage.setItem('jason-admin','1');setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));hideAuth();render();loadWeather();$("login").onclick=beginLogin;setSync('📱 Preview · This phone');if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('📱 Preview · This phone')}}}
 $("today").onclick=()=>{testDate=null;offset=0;render()};$("tomorrow").onclick=()=>{testDate=null;offset=1;render()};start();
 </script></body></html>
