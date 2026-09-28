@@ -90,6 +90,19 @@ function scheduleFor(ds){
   return {label,classes:ORDERS[type].map(n=>PERIODS[n]),school:true,lunch:true,start:type==="LATE"?"8:54 AM":"8:00 AM",pickup:"1:55 PM"};
 }
 let offset=0,testDate=null,state={},pusher=null,channel=null,refreshPromise=null,weatherByDate={},saveInFlight=0;
+const pendingChecks=new Map();
+function pendingKey(date,id){return date+'::'+id}
+function overlayPendingChecks(next){
+ if(!next||typeof next!=='object')next={};
+ if(!next.dates||typeof next.dates!=='object'||Array.isArray(next.dates))next.dates={};
+ for(const [k,v] of pendingChecks){
+  const cut=k.indexOf('::'),date=k.slice(0,cut),id=k.slice(cut+2);
+  if(!next.dates[date]||typeof next.dates[date]!=='object')next.dates[date]={};
+  if(next.dates[date][id]===v){pendingChecks.delete(k);continue}
+  next.dates[date][id]=v;
+ }
+ return next;
+}
 const WEATHER_LAT=34.00, WEATHER_LON=-117.81;
 function weatherCodeLabel(code){
  if(code===0)return ['☀️','Clear']; if([1,2].includes(code))return ['🌤️','Partly cloudy']; if(code===3)return ['☁️','Cloudy'];
@@ -200,7 +213,7 @@ function normalizePayload(data){
  clearFatal();const checklist=(data.checklist&&typeof data.checklist==='object')?data.checklist:{};
  const next=v<2?migrateLegacyChecklist(checklist):checklist;state=next;pruneOldDates();return state;
 }
-function handleIncomingData(data){if(saveInFlight>0)return;const next=normalizePayload(data);if(next===null)return;state=next;localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Synced • Live')}
+function handleIncomingData(data){let next=normalizePayload(data);if(next===null)return;next=overlayPendingChecks(next);state=next;localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync(pendingChecks.size?'☁️ Saving…':'☁️ Synced • Live')}
 async function fetchLatest(){
  try{const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');if(r.status===403){showFatal('This account does not have access to Jason School sync.');setSync('⚠️ Access denied');return}if(!r.ok)throw new Error('GET '+r.status);const body=await r.json();
   if(body.data===null){state=JSON.parse(localStorage.getItem('jason-v3')||'{}');if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();await postState();}else handleIncomingData(body.data);
@@ -212,7 +225,16 @@ async function postState(){
  const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:payload})});
  if(r.status===403){showFatal('This account does not have permission to update Jason School.');throw new Error('403')}if(r.status===422)throw new Error('Invalid sync data');if(!r.ok)throw new Error('POST '+r.status);setSync('☁️ Synced • Live');return r.json();
 }
-async function save(date,id,v){dateItems(date)[id]=v;pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');saveInFlight++;try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}finally{saveInFlight=Math.max(0,saveInFlight-1)}}
+async function save(date,id,v){
+ const pk=pendingKey(date,id);pendingChecks.set(pk,v);dateItems(date)[id]=v;pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');saveInFlight++;
+ try{
+  await postState();
+  // Keep the optimistic value until the server sends back this same value.
+  // A stale realtime event can no longer erase a checkbox the user just changed.
+  setTimeout(async()=>{try{await fetchLatest()}catch(e){}},250);
+ }catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}
+ finally{saveInFlight=Math.max(0,saveInFlight-1)}
+}
 function disconnectRealtime(){if(pusher){try{pusher.disconnect()}catch(e){}}pusher=null;channel=null}
 function connectRealtime(){
  disconnectRealtime();const accessToken=localStorage.getItem('access_token');if(!accessToken)return;
@@ -248,7 +270,7 @@ function editCustom(id){const x=customData().find(i=>i.id===id);if(!x)return;edi
 async function removeCustom(id){state.__custom.items=customData().filter(x=>x.id!==id);localStorage.setItem('jason-v3',JSON.stringify(state));manager();render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
 async function addCustom(){const name=$('edittext').value.trim();if(!name){$('editor').classList.remove('show');localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}return}const category=$('editcategory').value,ds=$('editdate').value||iso(target()),scope=category==='daily'?'always':$('editscope').value,classId=category==='class'?$('editclass').value:null,end=category==='daily'?null:($('editend').value||null),due=category==='daily'?null:($('editdue').value||null);const obj={id:editingId||Date.now().toString(36),name,category,classId,date:ds,scope,end,due,dailyCol:category==='daily'?'right':null};if(editingId){const n=customData().findIndex(x=>x.id===editingId);if(n>=0)state.__custom.items[n]=obj}else customData().push(obj);editingId=null;$('edittext').value='';$('editend').value='';$('editdue').value='';$('editor').classList.remove('show');localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
 function editorVisibility(){const cat=$('editcategory').value;$('classpick').style.display=cat==='class'?'block':'none';$('endpick').style.display=cat!=='daily'&&$('editscope').value==='range'?'block':'none';$('editscope').parentElement; $('editscope').style.display=cat==='daily'?'none':'';$('duepick').style.display=cat==='daily'?'none':'';manager()}
-function setupAdmin(){const q=new URLSearchParams(location.search);const requested=q.get('admin');if(requested==='1')localStorage.setItem('jason-admin-v3','1');if(requested==='0')localStorage.removeItem('jason-admin-v3');localStorage.removeItem('jason-admin-v2');const on=localStorage.getItem('jason-admin-v3')==='1';$('adminbar').classList.toggle('show',on);$('editbtn').onclick=()=>{editingId=null;$('editdate').value=iso(target());$('editor').classList.toggle('show');editorVisibility()};$('cancelEdit').onclick=()=>{$('editor').classList.remove('show');editingId=null};$('saveEdit').onclick=addCustom;$('editcategory').onchange=editorVisibility;$('editscope').onchange=editorVisibility}
+function setupAdmin(){const q=new URLSearchParams(location.search);const requested=q.get('admin');if(requested==='1')localStorage.setItem('jason-admin-v4','1');if(requested==='0')localStorage.removeItem('jason-admin-v4');const on=localStorage.getItem('jason-admin-v4')==='1';$('adminbar').classList.toggle('show',on);$('editbtn').onclick=()=>{editingId=null;$('editdate').value=iso(target());$('editor').classList.toggle('show');editorVisibility()};$('cancelEdit').onclick=()=>{$('editor').classList.remove('show');editingId=null};$('saveEdit').onclick=addCustom;$('editcategory').onchange=editorVisibility;$('editscope').onchange=editorVisibility}
 function mondayOf(ds){const d=new Date(ds+'T12:00:00'),n=d.getDay(),delta=n===0?-6:1-n;d.setDate(d.getDate()+delta);return iso(d)}
 function firstClassDateThisWeek(ds,classId){let d=new Date(mondayOf(ds)+'T12:00:00');for(let i=0;i<7;i++){const x=iso(d),s=scheduleFor(x);if(s.classes.some(c=>c.id===classId))return x;d.setDate(d.getDate()+1)}return null}
 function builtInHomework(ds,s){const a=[];if(s.classes.some(c=>c.id==='ela')&&firstClassDateThisWeek(ds,'ela')===ds)a.push({id:'ela-log',name:'📝 ELA · Turn in last week Reading Log + Get new form'});return a}
