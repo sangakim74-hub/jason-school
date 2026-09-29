@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jason School FIX6 0925</title>
+<title>Jason School FIX25 0929</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0b0b0b}
 .wrap{max-width:760px;margin:auto;padding:18px 22px 42px}.head{font-size:31px;font-weight:900;margin:4px 0 2px}.sync{text-align:center;color:#777;font-weight:700;margin:2px 0 8px;font-size:14px}
@@ -40,16 +40,18 @@
 #returns{background:#fafafa;border-radius:16px;padding:9px 14px;margin:7px 0}
 @media(max-width:520px){
  .wrap{padding:10px 14px 26px}.head{font-size:25px}.tabs{gap:7px}.tab{min-height:44px;padding:8px 6px;font-size:15px}
- .class-group{grid-template-columns:39% 61%;gap:6px 8px;padding:7px 10px!important;min-height:67px;border-radius:14px}
- .class-main .row{font-size:15px;gap:8px;min-height:50px}.class-main .cb{width:34px;height:34px;flex-basis:34px}
+ .class-group{grid-template-columns:minmax(0,52%) minmax(0,48%);gap:6px 8px;padding:7px 10px!important;min-height:67px;border-radius:14px}
+ .class-main .row{font-size:13.5px;gap:7px;min-height:50px}.class-main .cb{width:34px;height:34px;flex-basis:34px}
  .class-supplies .sub{font-size:11.5px;min-height:23px;gap:6px}.class-supplies .sub span{white-space:normal;line-height:1.1}
  .class-supplies .sub .cb{width:22px;height:22px;flex-basis:22px}
+ .class-main{min-width:0;overflow:hidden}.class-main .row{min-width:0}.class-main .row span{min-width:0;white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.15}
+ .class-supplies{min-width:0;overflow:hidden}.class-supplies .sub{min-width:0;align-items:flex-start}.class-supplies .sub span{min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.15}
  .daily-grid{grid-template-columns:1fr 1fr!important;padding:8px 10px!important;column-gap:13px}
  .daily-grid .row{font-size:11.5px;min-height:24px;gap:6px}.daily-grid .cb{width:22px;height:22px;flex-basis:22px}
  .home{font-size:19px}.home-list .row{margin-left:35px;font-size:12px;min-height:24px}.home-list .cb{width:17px;height:17px;flex-basis:17px}
 }
 </style></head><body><main class="wrap">
-<div class="head">🎒 Jason School</div><div class="sync" id="sync">☁️ Connecting…</div>
+<div class="head" id="appTitle">🎒 Jason School</div><div class="sync" id="sync">☁️ Connecting…</div>
 <div class="auth" id="auth"><div class="authmsg" id="authmsg">Sign in once to sync Jason School across devices.</div><button id="login">Sign in</button></div>
 <div class="fatal" id="fatal"></div>
 <div class="adminbar" id="adminbar"><button class="editbtn" id="editbtn">＋ Add / Edit</button></div>
@@ -89,7 +91,7 @@ function scheduleFor(ds){
   // set lunch:false for that calendar type/date and Water Bottle will remain while Lunch disappears.
   return {label,classes:ORDERS[type].map(n=>PERIODS[n]),school:true,lunch:true,start:type==="LATE"?"8:54 AM":"8:00 AM",pickup:"1:55 PM"};
 }
-let offset=0,testDate=null,state={},pusher=null,channel=null,refreshPromise=null,weatherByDate={},saveInFlight=0;
+let offset=0,testDate=null,state={},pusher=null,channel=null,refreshPromise=null,weatherByDate={},saveInFlight=0,syncPoll=null;
 const pendingChecks=new Map();
 function pendingKey(date,id){return date+'::'+id}
 function overlayPendingChecks(next){
@@ -228,6 +230,10 @@ async function postState(){
 async function save(date,id,v){
  const pk=pendingKey(date,id);pendingChecks.set(pk,v);dateItems(date)[id]=v;pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');saveInFlight++;
  try{
+  // Merge the newest shared state before posting so one phone cannot overwrite
+  // changes that arrived from the other phone while this device was stale.
+  await fetchLatest();
+  dateItems(date)[id]=v;pendingChecks.set(pk,v);pruneOldDates();
   await postState();
   // Keep the optimistic value until the server sends back this same value.
   // A stale realtime event can no longer erase a checkbox the user just changed.
@@ -235,7 +241,7 @@ async function save(date,id,v){
  }catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}
  finally{saveInFlight=Math.max(0,saveInFlight-1)}
 }
-function disconnectRealtime(){if(pusher){try{pusher.disconnect()}catch(e){}}pusher=null;channel=null}
+function disconnectRealtime(){if(syncPoll){clearInterval(syncPoll);syncPoll=null}if(pusher){try{pusher.disconnect()}catch(e){}}pusher=null;channel=null}
 function connectRealtime(){
  disconnectRealtime();const accessToken=localStorage.getItem('access_token');if(!accessToken)return;
  pusher=new Pusher(PUSHER_KEY,{wsHost:PUSHER_HOST,wsPort:443,wssPort:443,forceTLS:true,enabledTransports:['ws','wss'],cluster:'mt1',authorizer:(ch)=>({authorize:async(socketId,callback)=>{try{const r=await apiFetch('/broadcasting/auth',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({socket_id:socketId,channel_name:ch.name})});const d=await r.json();if(!r.ok)throw d;callback(false,d)}catch(e){callback(true,e)}}})});
@@ -245,6 +251,7 @@ function connectRealtime(){
  channel.bind('pusher:subscription_succeeded',async()=>{setSync('☁️ Synced • Live');await fetchLatest()});
  channel.bind('pusher:subscription_error',()=>setSync('⚠️ Live sync unavailable'));
  channel.bind('app-data.updated',(payload)=>{if(payload&&payload.data)handleIncomingData(payload.data)});
+ syncPoll=setInterval(()=>{if(document.visibilityState==='visible'&&localStorage.getItem('access_token'))fetchLatest().catch(()=>{})},2000);
 }
 function customData(){if(!state.__custom||typeof state.__custom!=="object")state.__custom={items:[]};if(!Array.isArray(state.__custom.items))state.__custom.items=[];return state.__custom.items}
 function dayDiff(a,b){const A=new Date(a+'T12:00:00'),B=new Date(b+'T12:00:00');return Math.round((B-A)/86400000)}
@@ -270,11 +277,11 @@ function editCustom(id){const x=customData().find(i=>i.id===id);if(!x)return;edi
 async function removeCustom(id){state.__custom.items=customData().filter(x=>x.id!==id);localStorage.setItem('jason-v3',JSON.stringify(state));manager();render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
 async function addCustom(){const name=$('edittext').value.trim();if(!name){$('editor').classList.remove('show');localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}return}const category=$('editcategory').value,ds=$('editdate').value||iso(target()),scope=category==='daily'?'always':$('editscope').value,classId=category==='class'?$('editclass').value:null,end=category==='daily'?null:($('editend').value||null),due=category==='daily'?null:($('editdue').value||null);const obj={id:editingId||Date.now().toString(36),name,category,classId,date:ds,scope,end,due,dailyCol:category==='daily'?'right':null};if(editingId){const n=customData().findIndex(x=>x.id===editingId);if(n>=0)state.__custom.items[n]=obj}else customData().push(obj);editingId=null;$('edittext').value='';$('editend').value='';$('editdue').value='';$('editor').classList.remove('show');localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');try{await postState()}catch(e){if(e.message!=='AUTH_REQUIRED')setSync('⚠️ Saved on this phone only')}}
 function editorVisibility(){const cat=$('editcategory').value;$('classpick').style.display=cat==='class'?'block':'none';$('endpick').style.display=cat!=='daily'&&$('editscope').value==='range'?'block':'none';$('editscope').parentElement; $('editscope').style.display=cat==='daily'?'none':'';$('duepick').style.display=cat==='daily'?'none':'';manager()}
-function setupAdmin(){const q=new URLSearchParams(location.search);const requested=q.get('admin');if(requested==='1')localStorage.setItem('jason-admin-v4','1');if(requested==='0')localStorage.removeItem('jason-admin-v4');const on=localStorage.getItem('jason-admin-v4')==='1';$('adminbar').classList.toggle('show',on);$('editbtn').onclick=()=>{editingId=null;$('editdate').value=iso(target());$('editor').classList.toggle('show');editorVisibility()};$('cancelEdit').onclick=()=>{$('editor').classList.remove('show');editingId=null};$('saveEdit').onclick=addCustom;$('editcategory').onchange=editorVisibility;$('editscope').onchange=editorVisibility}
+function setupAdmin(){const q=new URLSearchParams(location.search);const requested=q.get('admin');if(requested==='1')localStorage.setItem('jason-admin-v6','1');if(requested==='0')localStorage.removeItem('jason-admin-v6');const applyAdmin=()=>{$('adminbar').classList.toggle('show',localStorage.getItem('jason-admin-v6')==='1')};applyAdmin();$('editbtn').onclick=()=>{editingId=null;$('editdate').value=iso(target());$('editor').classList.toggle('show');editorVisibility()};$('cancelEdit').onclick=()=>{$('editor').classList.remove('show');editingId=null};$('saveEdit').onclick=addCustom;$('editcategory').onchange=editorVisibility;$('editscope').onchange=editorVisibility}
 function mondayOf(ds){const d=new Date(ds+'T12:00:00'),n=d.getDay(),delta=n===0?-6:1-n;d.setDate(d.getDate()+delta);return iso(d)}
 function firstClassDateThisWeek(ds,classId){let d=new Date(mondayOf(ds)+'T12:00:00');for(let i=0;i<7;i++){const x=iso(d),s=scheduleFor(x);if(s.classes.some(c=>c.id===classId))return x;d.setDate(d.getDate()+1)}return null}
 function builtInHomework(ds,s){const a=[];if(s.classes.some(c=>c.id==='ela')&&firstClassDateThisWeek(ds,'ela')===ds)a.push({id:'ela-log',name:'📝 ELA · Turn in last week Reading Log + Get new form'});return a}
 function render(){const d=target(),ds=iso(d),s=scheduleFor(ds);$('today').classList.toggle('active',!testDate&&offset===0);$('tomorrow').classList.toggle('active',!testDate&&offset===1);$('date').textContent=(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+' · '+d.toLocaleDateString('en-US',{weekday:'long'});$('day').textContent=s.label;$('day').classList.toggle('late',CALENDAR[ds]==='LATE');renderWeather(ds,s);$('schooltime').textContent=s.school?`🏫 ${s.start}  •  🚗 ${s.pickup} · Office Pickup`:'';const di=dailyItems(ds,s);$('daily').style.display=di.length?'grid':'none';$('daily').innerHTML=di.length?di.map(i=>'<div class="daily-cell '+(i.col||'')+'">'+box(ds,'daily-'+i.id,i.name,true)+'</div>').join(''):'';$('classes').innerHTML=s.classes.length?s.classes.map(c=>'<div class="class-group"><div class="class-main">'+box(ds,'class-'+c.id,c.name)+'</div><div class="class-supplies">'+c.items.map(i=>box(ds,'item-'+c.id+'-'+i.id,i.name,true)).join('')+visibleCustom(ds,'class',c.id).map(x=>customBox(ds,x)).join('')+'</div></div>').join(''):'<div class="home">No classes scheduled</div>';const bh=builtInHomework(ds,s),ch=visibleCustom(ds,'homework');const he=$('homework');if(!bh.length&&!ch.length){he.className='none home-list';he.textContent='None'}else{he.className='home-list';he.innerHTML=bh.map(x=>box(ds,'builtin-'+x.id,x.name,true)).join('')+ch.map(x=>box(ds,'custom-'+x.id,customLabel(x),true)).join('')}const todos=visibleCustom(ds,'todo');$('returns').style.display=todos.length?'block':'none';$('returnItems').innerHTML=todos.map(x=>box(ds,'custom-'+x.id,x.name,true)).join('');document.querySelectorAll('.cb').forEach(x=>x.onchange=()=>save(x.dataset.date,x.dataset.id,x.checked))}
-async function start(){setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));hideAuth();render();loadWeather();$("login").onclick=beginLogin;setSync('📱 Preview · This phone');if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('📱 Preview · This phone')}}}
-$("today").onclick=()=>{testDate=null;offset=0;render()};$("tomorrow").onclick=()=>{testDate=null;offset=1;render()};start();
+async function start(){setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));hideAuth();render();loadWeather();$("login").onclick=beginLogin;setSync('📱 Preview · This phone');await finishLoginIfNeeded();if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('📱 Preview · This phone')}}else showAuth()}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&localStorage.getItem('access_token')){fetchLatest().catch(()=>{});connectRealtime()}});window.addEventListener('focus',()=>{if(localStorage.getItem('access_token')){fetchLatest().catch(()=>{});connectRealtime()}});$("today").onclick=()=>{testDate=null;offset=0;render()};$("tomorrow").onclick=()=>{testDate=null;offset=1;render()};start();
 </script></body></html>
