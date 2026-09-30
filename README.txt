@@ -20,3 +20,8 @@ FIX33 2026-09-29
 FIX34 2026-09-29
 - Aligns each supply checkbox with the FIRST text line, including wrapped Science Book text.
 - Uses top alignment with a 4px text offset so single-line and two-line supply labels share one visual baseline.
+
+
+FIX35 2026-09-29
+- Today checkbox sync uses retry + server verification and clears stale pending overlays.
+- Mom phone Add/Edit can be enabled once by triple-tapping the Jason School title on Production; it then stays enabled on that browser.
