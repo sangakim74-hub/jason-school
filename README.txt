@@ -24,9 +24,10 @@ FIX39 2026-09-29
 - Keeps FIX38 Add/Edit behavior unchanged.
 
 
-FIX40 2026-09-29
-- Fixes Today cross-device sync by releasing local pending state immediately after a successful server POST.
-- Keeps rapid taps batched.
-- Re-reads server once after save and restores the batch if a near-simultaneous second-device write erased it.
-- Pauses the 1-second poll while a checkbox save is in flight.
-- Keeps FIX38 Add/Edit behavior unchanged.
+FIX41 2026-09-29
+- Based on FIX39, where local Today checkbox taps stayed checked.
+- Forces every sync GET to bypass browser/intermediary cache using cache:no-store, no-cache headers, and a timestamp query.
+- Prevents a freshly saved Today state from being replaced by an older cached server response.
+- Keeps rapid-tap batching and Add/Edit behavior.
+
+FIX41: force fresh sync reads with no-store/no-cache and cache-busting timestamp.
