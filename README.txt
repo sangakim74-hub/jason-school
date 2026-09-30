@@ -15,3 +15,10 @@ FIX38 2026-09-29
 - Makes Mom Add/Edit open reliably on Today with both click and touch handling.
 - Opens editor before running editor refresh logic so a secondary UI error cannot block the button.
 - Keeps FIX37 Today sync timestamp merge logic unchanged.
+
+
+FIX39 2026-09-29
+- Rapid Today/Tomorrow checkbox taps are batched for 320ms and saved together.
+- Pending local checks are always overlaid on incoming server data, preventing on/off flicker.
+- A whole batch is verified before pending checks are cleared, so rapid taps cannot all disappear.
+- Keeps FIX38 Add/Edit behavior unchanged.
