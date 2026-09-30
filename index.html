@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jason School FIX35 0929</title>
+<title>Jason School FIX36 0929</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0b0b0b}
 .wrap{max-width:760px;margin:auto;padding:18px 22px 42px}.head{font-size:31px;font-weight:900;margin:4px 0 2px}.sync{text-align:center;color:#777;font-weight:700;margin:2px 0 8px;font-size:14px}
@@ -315,7 +315,7 @@ function setupAdmin(){
  const applyAdmin=()=>{$('adminbar').classList.toggle('show',!isProduction||localStorage.getItem('jason-mom-admin')==='1')};
  applyAdmin();
  let adminTapCount=0,adminTapTimer=null;
- const brand=document.querySelector('.brand');
+ const brand=document.getElementById('appTitle');
  if(brand)brand.addEventListener('click',()=>{if(!isProduction)return;adminTapCount++;clearTimeout(adminTapTimer);adminTapTimer=setTimeout(()=>adminTapCount=0,900);if(adminTapCount>=3){localStorage.setItem('jason-mom-admin','1');adminTapCount=0;clearTimeout(adminTapTimer);applyAdmin();}});
  if(requested!==null){q.delete('admin');const clean=location.pathname+(q.toString()?'?'+q.toString():'')+location.hash;history.replaceState({},'',clean)}
  $('editbtn').onclick=()=>{editingId=null;$('editdate').value=iso(target());$('editor').classList.toggle('show');editorVisibility()};$('cancelEdit').onclick=()=>{$('editor').classList.remove('show');editingId=null};$('saveEdit').onclick=addCustom;$('editcategory').onchange=editorVisibility;$('editscope').onchange=editorVisibility
