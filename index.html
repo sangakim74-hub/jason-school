@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jason School FIX36 0929</title>
+<title>Jason School FIX37 0929</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0b0b0b}
 .wrap{max-width:760px;margin:auto;padding:18px 22px 42px}.head{font-size:31px;font-weight:900;margin:4px 0 2px}.sync{text-align:center;color:#777;font-weight:700;margin:2px 0 8px;font-size:14px}
@@ -94,6 +94,35 @@ function scheduleFor(ds){
 }
 let offset=0,testDate=null,state={},pusher=null,channel=null,refreshPromise=null,weatherByDate={},saveInFlight=0,syncPoll=null;
 const pendingChecks=new Map();
+function ensureCheckMeta(obj=state){
+ if(!obj.__checkMeta||typeof obj.__checkMeta!=='object')obj.__checkMeta={};
+ return obj.__checkMeta;
+}
+function setCheckMeta(obj,date,id,ts){
+ const m=ensureCheckMeta(obj);if(!m[date]||typeof m[date]!=='object')m[date]={};m[date][id]=ts;
+}
+function getCheckMeta(obj,date,id){
+ return Number(obj&&obj.__checkMeta&&obj.__checkMeta[date]&&obj.__checkMeta[date][id]||0);
+}
+function mergeChecklistByTimestamp(base,other){
+ if(!base||typeof base!=='object')base={dates:{}};
+ if(!base.dates||typeof base.dates!=='object')base.dates={};
+ if(!other||typeof other!=='object')return base;
+ if(!other.dates||typeof other.dates!=='object')other.dates={};
+ const dates=new Set([...Object.keys(base.dates),...Object.keys(other.dates)]);
+ for(const d of dates){
+  if(!base.dates[d])base.dates[d]={};
+  const ids=new Set([...Object.keys(base.dates[d]||{}),...Object.keys(other.dates[d]||{})]);
+  for(const id of ids){
+   if(id.startsWith('__'))continue;
+   const bt=getCheckMeta(base,d,id),ot=getCheckMeta(other,d,id);
+   if(ot>bt && Object.prototype.hasOwnProperty.call(other.dates[d]||{},id)){
+    base.dates[d][id]=other.dates[d][id];setCheckMeta(base,d,id,ot);
+   }
+  }
+ }
+ return base;
+}
 function pendingKey(date,id){return date+'::'+id}
 function overlayPendingChecks(next){
  if(!next||typeof next!=='object')next={};
@@ -220,12 +249,12 @@ function normalizePayload(data){
  clearFatal();const checklist=(data.checklist&&typeof data.checklist==='object')?data.checklist:{};
  const next=v<2?migrateLegacyChecklist(checklist):checklist;state=next;pruneOldDates();return state;
 }
-function handleIncomingData(data){let next=normalizePayload(data);if(next===null)return;next=overlayPendingChecks(next);state=next;cleanupTestItems();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync(pendingChecks.size?'☁️ Saving…':'☁️ Synced • Live')}
+function handleIncomingData(data){let next=normalizePayload(data);if(next===null)return;next=mergeChecklistByTimestamp(next,state);next=overlayPendingChecks(next);state=next;cleanupTestItems();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync(pendingChecks.size?'☁️ Saving…':'☁️ Synced • Live')}
 async function fetchLatest(){
  try{const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');if(r.status===403){showFatal('This account does not have access to Jason School sync.');setSync('⚠️ Access denied');return}if(!r.ok)throw new Error('GET '+r.status);const body=await r.json();
   if(body.data===null){state=JSON.parse(localStorage.getItem('jason-v3')||'{}');if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();await postState();}
   else{
-   let next=normalizePayload(body.data);if(next===null)return;next=overlayPendingChecks(next);state=next;
+   let next=normalizePayload(body.data);if(next===null)return;next=mergeChecklistByTimestamp(next,state);next=overlayPendingChecks(next);state=next;
    const cleaned=cleanupTestItems();
    localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync(pendingChecks.size?'☁️ Saving…':'☁️ Synced • Live');
    if(cleaned)await postState();
@@ -239,30 +268,44 @@ async function postState(){
  if(r.status===403){showFatal('This account does not have permission to update Jason School.');throw new Error('403')}if(r.status===422)throw new Error('Invalid sync data');if(!r.ok)throw new Error('POST '+r.status);setSync('☁️ Synced • Live');return r.json();
 }
 async function save(date,id,v){
- const pk=pendingKey(date,id);pendingChecks.set(pk,v);dateItems(date)[id]=v;pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');saveInFlight++;
+ const pk=pendingKey(date,id),ts=Date.now();
+ pendingChecks.set(pk,v);dateItems(date)[id]=v;setCheckMeta(state,date,id,ts);
+ pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Saving…');saveInFlight++;
  try{
   let saved=false;
-  for(let attempt=0;attempt<5&&!saved;attempt++){
+  for(let attempt=0;attempt<6&&!saved;attempt++){
    const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');
    if(!r.ok)throw new Error('GET '+r.status);
    const body=await r.json();
    let latest=body.data===null?{dates:{}}:normalizePayload(body.data);
    if(latest===null)latest={dates:{}};
-   state=latest;cleanupTestItems();dateItems(date)[id]=v;pruneOldDates();
+   // Merge the newest checkbox decisions from BOTH the server and this phone.
+   latest=mergeChecklistByTimestamp(latest,state);
+   latest.dates=latest.dates||{};if(!latest.dates[date])latest.dates[date]={};
+   latest.dates[date][id]=v;setCheckMeta(latest,date,id,ts);
+   state=latest;cleanupTestItems();pruneOldDates();
    localStorage.setItem('jason-v3',JSON.stringify(state));render();
    await postState();
-   await new Promise(resolve=>setTimeout(resolve,180+attempt*120));
+   await new Promise(resolve=>setTimeout(resolve,220+attempt*140));
    const vr=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');
    if(!vr.ok)throw new Error('VERIFY '+vr.status);
    const vb=await vr.json(),verified=vb.data===null?null:normalizePayload(vb.data);
-   if(verified&&verified.dates&&verified.dates[date]&&verified.dates[date][id]===v){state=verified;cleanupTestItems();saved=true;break}
+   if(verified){
+    state=mergeChecklistByTimestamp(verified,state);
+    const ok=state.dates&&state.dates[date]&&state.dates[date][id]===v&&getCheckMeta(state,date,id)>=ts;
+    if(ok){saved=true;break}
+   }
   }
   pendingChecks.delete(pk);
   if(!saved)throw new Error('VERIFY_FAILED');
   localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync('☁️ Synced • Live');
+  // One final merged write protects Today from a stale second phone overwriting it a moment later.
+  await postState();
   await fetchLatest();
- }catch(e){pendingChecks.delete(pk);setSync(e.message==='AUTH_REQUIRED'?'🔐 Sign in required':'⚠️ Sync failed · tap again');try{await fetchLatest()}catch(_){} }
- finally{saveInFlight=Math.max(0,saveInFlight-1)}
+ }catch(e){
+  pendingChecks.delete(pk);setSync(e.message==='AUTH_REQUIRED'?'🔐 Sign in required':'⚠️ Sync failed · tap again');
+  try{await fetchLatest()}catch(_){}
+ }finally{saveInFlight=Math.max(0,saveInFlight-1)}
 }
 function disconnectRealtime(){if(syncPoll){clearInterval(syncPoll);syncPoll=null}if(pusher){try{pusher.disconnect()}catch(e){}}pusher=null;channel=null}
 function connectRealtime(){
