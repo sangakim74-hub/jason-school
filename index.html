@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jason School FIX41 0929</title>
+<title>Jason School FIX42 0930</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0b0b0b}
 .wrap{max-width:760px;margin:auto;padding:18px 22px 42px}.head{font-size:31px;font-weight:900;margin:4px 0 2px}.sync{text-align:center;color:#777;font-weight:700;margin:2px 0 8px;font-size:14px}
@@ -126,12 +126,11 @@ function mergeChecklistByTimestamp(base,other){
 function pendingKey(date,id){return date+'::'+id}
 function overlayPendingChecks(next){
  if(!next||typeof next!=='object')next={};
- if(!next.dates||typeof next.dates!=='object'||Array.isArray(next.dates))next.dates={};
+ ensureLiveSlots(next);
  for(const [k,v] of pendingChecks){
-  const cut=k.indexOf('::'),date=k.slice(0,cut),id=k.slice(cut+2);
-  if(!next.dates[date]||typeof next.dates[date]!=='object')next.dates[date]={};
-  if(next.dates[date][id]===v){pendingChecks.delete(k);continue}
-  next.dates[date][id]=v;
+  const cut=k.indexOf('::'),date=k.slice(0,cut),id=k.slice(cut+2),bucket=bucketFor(next,date);
+  if(bucket[id]===v){pendingChecks.delete(k);continue}
+  bucket[id]=v;
  }
  return next;
 }
@@ -170,13 +169,42 @@ function dailyItems(ds,s){
 
 const $=id=>document.getElementById(id);
 function iso(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`}
+function localTodayIso(){const d=new Date();d.setHours(12,0,0,0);return iso(d)}
+function localTomorrowIso(){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+1);return iso(d)}
+function previousIso(ds){const d=new Date(ds+'T12:00:00');d.setDate(d.getDate()-1);return iso(d)}
+function ensureLiveSlots(obj=state){
+ if(!obj||typeof obj!=='object')obj={};
+ if(!obj.dates||typeof obj.dates!=='object'||Array.isArray(obj.dates))obj.dates={};
+ const today=localTodayIso(),tomorrow=localTomorrowIso();
+ let live=obj.__liveChecks;
+ if(!live||typeof live!=='object'||live.day!==today){
+  let todayChecks={},tomorrowChecks={};
+  if(live&&typeof live==='object'&&live.day===previousIso(today)){
+   todayChecks=(live.tomorrow&&typeof live.tomorrow==='object')?live.tomorrow:{};
+  }else{
+   todayChecks=(obj.dates[today]&&typeof obj.dates[today]==='object')?obj.dates[today]:{};
+  }
+  tomorrowChecks=(obj.dates[tomorrow]&&typeof obj.dates[tomorrow]==='object')?obj.dates[tomorrow]:{};
+  obj.__liveChecks={day:today,today:{...todayChecks},tomorrow:{...tomorrowChecks}};
+ }
+ if(!obj.__liveChecks.today||typeof obj.__liveChecks.today!=='object')obj.__liveChecks.today={};
+ if(!obj.__liveChecks.tomorrow||typeof obj.__liveChecks.tomorrow!=='object')obj.__liveChecks.tomorrow={};
+ return obj.__liveChecks;
+}
+function bucketFor(obj,date){
+ const live=ensureLiveSlots(obj);
+ if(date===localTodayIso())return live.today;
+ if(date===localTomorrowIso())return live.tomorrow;
+ if(!obj.dates[date]||typeof obj.dates[date]!=='object')obj.dates[date]={};
+ return obj.dates[date];
+}
 function target(){if(testDate)return new Date(testDate+'T12:00:00');let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d}
 function ensureStateShape(){
  if(!state||typeof state!=='object')state={};
  if(!state.dates||typeof state.dates!=='object'||Array.isArray(state.dates))state.dates={};
  return state;
 }
-function dateItems(date){ensureStateShape();if(!state.dates[date]||typeof state.dates[date]!=='object')state.dates[date]={};return state.dates[date]}
+function dateItems(date){ensureStateShape();ensureLiveSlots(state);return bucketFor(state,date)}
 function box(date,id,name,sub=false){
  const checked=dateItems(date)[id]===true?' checked':'';
  return `<div class="row${sub?' sub':''}"><input class="cb" type="checkbox" data-date="${date}" data-id="${id}"${checked}><span>${name}</span></div>`;
@@ -249,7 +277,7 @@ function normalizePayload(data){
  const v=Number(data.schema_version||0);
  if(v>SUPPORTED_SCHEMA_VERSION){showFatal('This page needs to be refreshed to see the latest changes. <button class="reload" onclick="window.location.reload()">Reload</button>');return null}
  clearFatal();const checklist=(data.checklist&&typeof data.checklist==='object')?data.checklist:{};
- const next=v<2?migrateLegacyChecklist(checklist):checklist;state=next;pruneOldDates();return state;
+ const next=v<2?migrateLegacyChecklist(checklist):checklist;state=next;ensureLiveSlots(state);pruneOldDates();return state;
 }
 function handleIncomingData(data){let next=normalizePayload(data);if(next===null)return;next=overlayPendingChecks(next);state=next;cleanupTestItems();localStorage.setItem('jason-v3',JSON.stringify(state));render();setSync(pendingChecks.size?'☁️ Saving…':'☁️ Synced • Live')}
 function dataReadPath(){
@@ -267,6 +295,9 @@ async function fetchLatest(){
  }catch(e){if(e.message!=='AUTH_REQUIRED'){setSync('⚠️ Sync unavailable');state=JSON.parse(localStorage.getItem('jason-v3')||'{}');render()}}
 }
 async function postState(){
+ ensureLiveSlots(state);
+ state.dates[localTodayIso()]={...state.__liveChecks.today};
+ state.dates[localTomorrowIso()]={...state.__liveChecks.tomorrow};
  pruneOldDates();
  const payload={schema_version:SUPPORTED_SCHEMA_VERSION,checklist:state};
  const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:payload})});
@@ -296,9 +327,7 @@ async function flushPendingChecks(){
     // Apply every still-pending local checkbox on top of the newest server state.
     for(const [pk,val] of batch){
      const cut=pk.indexOf('::'),date=pk.slice(0,cut),id=pk.slice(cut+2);
-     if(!latest.dates)latest.dates={};
-     if(!latest.dates[date])latest.dates[date]={};
-     latest.dates[date][id]=val;
+     bucketFor(latest,date)[id]=val;
     }
 
     state=latest;cleanupTestItems();pruneOldDates();
@@ -316,7 +345,7 @@ async function flushPendingChecks(){
     let ok=true;
     for(const [pk,val] of batch){
      const cut=pk.indexOf('::'),date=pk.slice(0,cut),id=pk.slice(cut+2);
-     if(!verified.dates||!verified.dates[date]||verified.dates[date][id]!==val){ok=false;break}
+     if(bucketFor(verified,date)[id]!==val){ok=false;break}
     }
 
     if(!ok){
@@ -418,6 +447,6 @@ function mondayOf(ds){const d=new Date(ds+'T12:00:00'),n=d.getDay(),delta=n===0?
 function firstClassDateThisWeek(ds,classId){let d=new Date(mondayOf(ds)+'T12:00:00');for(let i=0;i<7;i++){const x=iso(d),s=scheduleFor(x);if(s.classes.some(c=>c.id===classId))return x;d.setDate(d.getDate()+1)}return null}
 function builtInHomework(ds,s){const a=[];if(s.classes.some(c=>c.id==='ela')&&firstClassDateThisWeek(ds,'ela')===ds)a.push({id:'ela-log',name:'📝 ELA · Turn in last week Reading Log + Get new form'});return a}
 function render(){const d=target(),ds=iso(d),s=scheduleFor(ds);$('today').classList.toggle('active',!testDate&&offset===0);$('tomorrow').classList.toggle('active',!testDate&&offset===1);$('date').textContent=(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+' · '+d.toLocaleDateString('en-US',{weekday:'long'});$('day').textContent=s.label;$('day').classList.toggle('late',CALENDAR[ds]==='LATE');renderWeather(ds,s);$('schooltime').textContent=s.school?`🏫 ${s.start}  •  🚗 ${s.pickup} · Office Pickup`:'';const di=dailyItems(ds,s);$('daily').style.display=di.length?'grid':'none';$('daily').innerHTML=di.length?di.map(i=>'<div class="daily-cell '+(i.col||'')+'">'+box(ds,'daily-'+i.id,i.name,true)+'</div>').join(''):'';$('classes').innerHTML=s.classes.length?s.classes.map(c=>'<div class="class-group"><div class="class-main">'+box(ds,'class-'+c.id,c.name)+'</div><div class="class-supplies">'+c.items.map(i=>box(ds,'item-'+c.id+'-'+i.id,i.name,true)).join('')+visibleCustom(ds,'class',c.id).map(x=>customBox(ds,x)).join('')+'</div></div>').join(''):'<div class="home">No classes scheduled</div>';const bh=builtInHomework(ds,s),ch=visibleCustom(ds,'homework');const he=$('homework');if(!bh.length&&!ch.length){he.className='none home-list';he.textContent='None'}else{he.className='home-list';he.innerHTML=bh.map(x=>box(ds,'builtin-'+x.id,x.name,true)).join('')+ch.map(x=>box(ds,'custom-'+x.id,customLabel(x),true)).join('')}const todos=visibleCustom(ds,'todo');$('returns').style.display=todos.length?'block':'none';$('returnItems').innerHTML=todos.map(x=>box(ds,'custom-'+x.id,x.name,true)).join('');document.querySelectorAll('.cb').forEach(x=>x.onchange=()=>save(x.dataset.date,x.dataset.id,x.checked))}
-async function start(){setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');cleanupTestItems();if(!state.dates)state=migrateLegacyChecklist(state);pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));hideAuth();render();loadWeather();const isProduction=location.hostname==='jason-school.netlify.app';if(!isProduction){setSync('🧪 Preview mode');$('auth').classList.add('show');$('authmsg').textContent='Preview mode: check screen changes here. Live Sync sign-in is tested only after Preview passes.';$('login').style.display='none';return}$("login").onclick=beginLogin;setSync('☁️ Connecting…');await finishLoginIfNeeded();if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('⚠️ Sync unavailable')}}else showAuth()}
+async function start(){setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');cleanupTestItems();if(!state.dates)state=migrateLegacyChecklist(state);ensureLiveSlots(state);pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));hideAuth();render();loadWeather();const isProduction=location.hostname==='jason-school.netlify.app';if(!isProduction){setSync('🧪 Preview mode');$('auth').classList.add('show');$('authmsg').textContent='Preview mode: check screen changes here. Live Sync sign-in is tested only after Preview passes.';$('login').style.display='none';return}$("login").onclick=beginLogin;setSync('☁️ Connecting…');await finishLoginIfNeeded();if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('⚠️ Sync unavailable')}}else showAuth()}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&localStorage.getItem('access_token')){fetchLatest().catch(()=>{});connectRealtime()}});window.addEventListener('focus',()=>{if(localStorage.getItem('access_token')){fetchLatest().catch(()=>{});connectRealtime()}});$("today").onclick=()=>{testDate=null;offset=0;render()};$("tomorrow").onclick=()=>{testDate=null;offset=1;render()};start();
 </script></body></html>

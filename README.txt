@@ -31,3 +31,10 @@ FIX41 2026-09-29
 - Keeps rapid-tap batching and Add/Edit behavior.
 
 FIX41: force fresh sync reads with no-store/no-cache and cache-busting timestamp.
+
+
+FIX42 2026-09-30
+- Today and Tomorrow checkbox state now sync through stable live slots instead of depending only on future calendar-date buckets.
+- At midnight, yesterday's Tomorrow slot is promoted to Today's slot automatically.
+- Current live slots are also copied back into dated history on save.
+- Keeps FIX41 no-cache reads, rapid tap batching, and Add/Edit behavior.
