@@ -22,3 +22,11 @@ FIX39 2026-09-29
 - Pending local checks are always overlaid on incoming server data, preventing on/off flicker.
 - A whole batch is verified before pending checks are cleared, so rapid taps cannot all disappear.
 - Keeps FIX38 Add/Edit behavior unchanged.
+
+
+FIX40 2026-09-29
+- Fixes Today cross-device sync by releasing local pending state immediately after a successful server POST.
+- Keeps rapid taps batched.
+- Re-reads server once after save and restores the batch if a near-simultaneous second-device write erased it.
+- Pauses the 1-second poll while a checkbox save is in flight.
+- Keeps FIX38 Add/Edit behavior unchanged.

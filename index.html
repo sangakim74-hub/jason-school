@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jason School FIX39 0929</title>
+<title>Jason School FIX40 0929</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0b0b0b}
 .wrap{max-width:760px;margin:auto;padding:18px 22px 42px}.head{font-size:31px;font-weight:900;margin:4px 0 2px}.sync{text-align:center;color:#777;font-weight:700;margin:2px 0 8px;font-size:14px}
@@ -274,65 +274,76 @@ function schedulePendingSave(){
  saveTimer=setTimeout(()=>flushPendingChecks(),320);
 }
 
+function applyBatchTo(obj,batch){
+ if(!obj||typeof obj!=='object')obj={dates:{}};
+ if(!obj.dates||typeof obj.dates!=='object')obj.dates={};
+ for(const [pk,val] of batch){
+  const cut=pk.indexOf('::'),date=pk.slice(0,cut),id=pk.slice(cut+2);
+  if(!obj.dates[date]||typeof obj.dates[date]!=='object')obj.dates[date]={};
+  obj.dates[date][id]=val;
+ }
+ return obj;
+}
+
+function batchPresent(obj,batch){
+ for(const [pk,val] of batch){
+  const cut=pk.indexOf('::'),date=pk.slice(0,cut),id=pk.slice(cut+2);
+  if(!obj||!obj.dates||!obj.dates[date]||obj.dates[date][id]!==val)return false;
+ }
+ return true;
+}
+
 async function flushPendingChecks(){
  if(flushPromise)return flushPromise;
  flushPromise=(async()=>{
+  saveInFlight++;
   try{
    while(pendingChecks.size){
     const batch=[...pendingChecks.entries()];
     setSync('☁️ Saving…');
 
+    // Always merge the local clicks into the newest server copy.
     const r=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');
     if(!r.ok)throw new Error('GET '+r.status);
     const body=await r.json();
     let latest=body.data===null?{dates:{}}:normalizePayload(body.data);
     if(latest===null)latest={dates:{}};
-
-    // Apply every still-pending local checkbox on top of the newest server state.
-    for(const [pk,val] of batch){
-     const cut=pk.indexOf('::'),date=pk.slice(0,cut),id=pk.slice(cut+2);
-     if(!latest.dates)latest.dates={};
-     if(!latest.dates[date])latest.dates[date]={};
-     latest.dates[date][id]=val;
-    }
+    latest=applyBatchTo(latest,batch);
 
     state=latest;cleanupTestItems();pruneOldDates();
     localStorage.setItem('jason-v3',JSON.stringify(state));render();
     await postState();
 
-    // Verify the whole batch together.
-    await new Promise(resolve=>setTimeout(resolve,260));
-    const vr=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');
-    if(!vr.ok)throw new Error('VERIFY '+vr.status);
-    const vb=await vr.json();
-    const verified=vb.data===null?null:normalizePayload(vb.data);
-    if(!verified)throw new Error('VERIFY_EMPTY');
-
-    let ok=true;
-    for(const [pk,val] of batch){
-     const cut=pk.indexOf('::'),date=pk.slice(0,cut),id=pk.slice(cut+2);
-     if(!verified.dates||!verified.dates[date]||verified.dates[date][id]!==val){ok=false;break}
-    }
-
-    if(!ok){
-     // Keep all local checks visible and retry instead of letting stale server data
-     // flash them on/off like a Christmas tree.
-     state=overlayPendingChecks(verified);localStorage.setItem('jason-v3',JSON.stringify(state));render();
-     await new Promise(resolve=>setTimeout(resolve,300));
-     continue;
-    }
-
-    state=verified;cleanupTestItems();
+    // POST success is enough to release the local pending state.
+    // This avoids Today being permanently trapped as "pending" on one phone.
     for(const [pk,val] of batch){
      if(pendingChecks.get(pk)===val)pendingChecks.delete(pk);
     }
-    state=overlayPendingChecks(state);
-    localStorage.setItem('jason-v3',JSON.stringify(state));render();
     setSync(pendingChecks.size?'☁️ Saving…':'☁️ Synced • Live');
+
+    // Re-read once. If another phone wrote at nearly the same time and erased
+    // this batch, merge it back one more time.
+    await new Promise(resolve=>setTimeout(resolve,300));
+    const vr=await apiFetch('/api/applications/'+APPLICATION_ID+'/data');
+    if(vr.ok){
+     const vb=await vr.json();
+     let server=vb.data===null?{dates:{}}:normalizePayload(vb.data);
+     if(server===null)server={dates:{}};
+     if(!batchPresent(server,batch)){
+      server=applyBatchTo(server,batch);
+      state=server;cleanupTestItems();pruneOldDates();
+      await postState();
+     }else{
+      state=server;
+     }
+     state=overlayPendingChecks(state);
+     localStorage.setItem('jason-v3',JSON.stringify(state));render();
+    }
    }
   }catch(e){
    setSync(e.message==='AUTH_REQUIRED'?'🔐 Sign in required':'⚠️ Sync failed · tap again');
   }finally{
+   saveInFlight=Math.max(0,saveInFlight-1);
    flushPromise=null;
    if(pendingChecks.size)schedulePendingSave();
   }
