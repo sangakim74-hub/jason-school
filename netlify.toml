@@ -4,5 +4,5 @@
 
 [[redirects]]
   from = "/auth/callback"
-  to = "/index.html"
+  to = "/myday-auth-callback.html"
   status = 200
