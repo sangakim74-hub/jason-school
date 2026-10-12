@@ -56,7 +56,7 @@
 <div class="auth" id="auth"><div class="authmsg" id="authmsg">Sign in once to sync Jason School across devices.</div><button id="login">Sign in</button></div>
 <div class="fatal" id="fatal"></div>
 <div class="adminbar" id="adminbar"><button class="editbtn" id="editbtn">＋ Add / Edit</button></div>
-<div class="editor" id="editor"><h2>Mom Add / Edit</h2><label>Start date</label><input id="editdate" type="date"><label>Add to</label><select id="editcategory"><option value="class">Class special supply</option><option value="homework">Homework</option><option value="todo">Today's To Do</option><option value="daily">Daily Items</option></select><div id="classpick"><label>Class</label><select id="editclass"><option value="ela">ELA 112</option><option value="math">Math 115</option><option value="pe">PE 202</option><option value="science">Science 418</option><option value="art">Art 127</option><option value="social">Social Science 111</option></select></div><label>Item</label><input id="edittext" placeholder="What needs to be added?"><label>Repeat</label><select id="editscope"><option value="date">One time · this date</option><option value="weekly">Every week</option><option value="biweekly">Every 2 weeks</option><option value="range">Date range</option><option value="always">Keep showing · no end date</option></select><div id="endpick" style="display:none"><label>End date</label><input id="editend" type="date"></div><div id="duepick"><label>Due date (optional)</label><input id="editdue" type="date"></div><div class="editor-actions"><button class="cancelbtn" id="cancelEdit">Cancel</button><button class="savebtn" id="saveEdit">Save</button></div><div id="customManager" style="margin-top:12px"></div></div>
+<div class="editor" id="editor"><h2>Mom Add / Edit</h2><label>Start date</label><input id="editdate" type="date"><label>Add to</label><select id="editcategory"><option value="class">Class special supply</option><option value="homework">Homework</option><option value="todo">Today's To Do</option><option value="daily">Daily Items</option></select><div id="classpick"><label>Class</label><select id="editclass"><option value="ela">ELA 112</option><option value="math">Math 115</option><option value="pe">PE 202</option><option value="science">Science 418</option><option value="art">Spanish · Period 5</option><option value="social">Social Science 111</option></select></div><label>Item</label><input id="edittext" placeholder="What needs to be added?"><label>Repeat</label><select id="editscope"><option value="date">One time · this date</option><option value="weekly">Every week</option><option value="biweekly">Every 2 weeks</option><option value="range">Date range</option><option value="always">Keep showing · no end date</option></select><div id="endpick" style="display:none"><label>End date</label><input id="editend" type="date"></div><div id="duepick"><label>Due date (optional)</label><input id="editdue" type="date"></div><div class="editor-actions"><button class="cancelbtn" id="cancelEdit">Cancel</button><button class="savebtn" id="saveEdit">Save</button></div><div id="customManager" style="margin-top:12px"></div></div>
 <div id="app">
 <div class="tabs"><button class="tab active" id="today">Today</button><button class="tab" id="tomorrow">Tomorrow →</button></div>
 <div class="meta"><div class="date" id="date"></div><div class="weatherline"><span class="umbrella-top" id="umbrellaTop"></span><div class="weather" id="weather"></div></div></div><div class="day" id="day"></div><div class="schooltime" id="schooltime"></div><section id="classes" class="card"></section><section id="daily" class="card daily-grid" style="display:none"></section>
@@ -82,15 +82,18 @@ const PERIODS = {
   6:{id:"social",name:"⑥ Social Science 111",items:[]}
 };
 const ORDERS = {A1:[1,3,5],A3:[3,5,1],A5:[5,1,3],B2:[2,4,6],B4:[4,6,2],B6:[6,2,4],SIX:[1,2,3,4,5,6],LATE:[1,2,3,4,5,6]};
+// Period 5 changes from Art to Spanish on the confirmed current school day.
+// Keep its checklist ID and historical dates intact.
+function periodForDate(n,ds){const c=PERIODS[n];return n===5&&ds>='2026-10-12'?{...c,name:'⑤ Spanish',items:[]}:c;}
 function scheduleFor(ds){
   const type=CALENDAR[ds];
   if(!type) return {label:"No School Schedule",classes:[],school:false,lunch:false};
   if(type==="NO") return {label:"No School",classes:[],school:false,lunch:false,start:null,pickup:null};
-  if(type==="MIN") return {label:"Minimum Day",classes:ORDERS.SIX.map(n=>PERIODS[n]),school:true,lunch:false,start:"8:00 AM",pickup:"11:45 AM"};
+  if(type==="MIN") return {label:"Minimum Day",classes:ORDERS.SIX.map(n=>periodForDate(n,ds)),school:true,lunch:false,start:"8:00 AM",pickup:"11:45 AM"};
   const label=type==="LATE"?"⏰ Late Start (1 Hour)":type==="SIX"?"6 Period Day":type+" Day";
   // Regular block days and 6-period days currently show lunch. If the school calendar later marks a no-lunch school day,
   // set lunch:false for that calendar type/date and Water Bottle will remain while Lunch disappears.
-  return {label,classes:ORDERS[type].map(n=>PERIODS[n]),school:true,lunch:true,start:type==="LATE"?"8:54 AM":"8:00 AM",pickup:"1:55 PM"};
+  return {label,classes:ORDERS[type].map(n=>periodForDate(n,ds)),school:true,lunch:true,start:type==="LATE"?"8:54 AM":"8:00 AM",pickup:"1:55 PM"};
 }
 let offset=0,testDate=null,state={},pusher=null,channel=null,refreshPromise=null,weatherByDate={},saveInFlight=0,syncPoll=null;
 const pendingChecks=new Map();
@@ -450,3 +453,4 @@ function render(){const d=target(),ds=iso(d),s=scheduleFor(ds);$('today').classL
 async function start(){setupAdmin();state=JSON.parse(localStorage.getItem('jason-v3')||'{}');cleanupTestItems();if(!state.dates)state=migrateLegacyChecklist(state);ensureLiveSlots(state);pruneOldDates();localStorage.setItem('jason-v3',JSON.stringify(state));hideAuth();render();loadWeather();const isProduction=location.hostname==='jason-school.netlify.app';if(!isProduction){setSync('🧪 Preview mode');$('auth').classList.add('show');$('authmsg').textContent='Preview mode: check screen changes here. Live Sync sign-in is tested only after Preview passes.';$('login').style.display='none';return}$("login").onclick=beginLogin;setSync('☁️ Connecting…');await finishLoginIfNeeded();if(localStorage.getItem('access_token')){try{await fetchLatest();connectRealtime()}catch(e){setSync('⚠️ Sync unavailable')}}else showAuth()}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&localStorage.getItem('access_token')){fetchLatest().catch(()=>{});connectRealtime()}});window.addEventListener('focus',()=>{if(localStorage.getItem('access_token')){fetchLatest().catch(()=>{});connectRealtime()}});$("today").onclick=()=>{testDate=null;offset=0;render()};$("tomorrow").onclick=()=>{testDate=null;offset=1;render()};start();
 </script></body></html>
+
