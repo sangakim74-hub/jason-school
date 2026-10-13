@@ -2,7 +2,7 @@
 #jason-simple-routines .jr-personal-decor{display:none!important}
 #jason-simple-routines .jr-scattered-stickers{display:none!important}
 #jason-simple-routines .jr-inset-art{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;pointer-events:none;user-select:none;overflow:hidden}
-#jason-simple-routines .jr-inset-art .jr-sticker-3d,#jason-simple-routines .jr-inset-art .jr-sticker-svg,#jason-simple-routines .jr-inset-art .jr-personal-sticker{width:54px;height:60px;flex-shrink:0;object-fit:contain}
+#jason-simple-routines .jr-inset-art .jr-sticker-3d,#jason-simple-routines .jr-inset-art .jr-sticker-svg,#jason-simple-routines .jr-inset-art .jr-personal-sticker{width:54px;height:60px;flex:0 0 54px;object-fit:contain}
 #jason-simple-routines .jr-art-pair{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
 #jason-simple-routines .jr-art-pair>.jr-inset-art{max-width:122px}
 #jason-simple-routines .jr-decorated-box{position:relative}
@@ -12,12 +12,12 @@
 #jason-simple-routines .jr-task{position:relative}
 #jason-simple-routines .jr-task.jr-decorated-task{padding-right:64px}
 #jason-simple-routines .jr-task>.jr-inset-art{position:absolute;right:8px;top:50%;transform:translateY(-50%);max-width:48px}
-#jason-simple-routines .jr-task>.jr-inset-art>*{width:38px;height:44px}
+#jason-simple-routines .jr-task>.jr-inset-art>*{width:38px;height:44px;flex:0 0 38px}
 #jason-simple-routines .jr-collection-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
 #jason-simple-routines .jr-collection-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:116px;padding:10px;font-size:12px;line-height:1.4;text-align:center;background:var(--jr-panel);color:var(--jr-ink);border:1px solid var(--jr-line)}
 #jason-simple-routines .jr-collection-card[aria-pressed=true]{outline:3px solid var(--jr-green);outline-offset:-3px}
 #jason-simple-routines .jr-collection-art{display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:55px;overflow:hidden}
-#jason-simple-routines .jr-collection-art>*{width:40px;height:50px;flex-shrink:0}
+#jason-simple-routines .jr-collection-art>.jr-sticker-3d,#jason-simple-routines .jr-collection-art>.jr-sticker-svg,#jason-simple-routines .jr-collection-art>img{width:40px;height:50px;flex:0 0 40px}
 #jason-simple-routines .jr-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0;font-size:13px}
 #jason-simple-routines .jr-pager button{padding:9px 12px;min-height:42px;font-size:13px}
 #jason-simple-routines .jr-assets-grid{gap:10px}
@@ -32,7 +32,7 @@
 #jason-simple-routines .jr-preview-screen .jr-preview-header{width:100%;max-height:115px;object-fit:cover;border-radius:9px}
 #jason-simple-routines .jr-preview-line{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--jr-line);border-radius:10px;padding:8px;background:var(--jr-panel);min-height:49px}
 #jason-simple-routines .jr-preview-art{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
-#jason-simple-routines .jr-preview-art>*{width:33px;height:39px;object-fit:contain;flex-shrink:0}
+#jason-simple-routines .jr-preview-art>.jr-sticker-3d,#jason-simple-routines .jr-preview-art>.jr-sticker-svg,#jason-simple-routines .jr-preview-art>img{width:33px;height:39px;object-fit:contain;flex:0 0 33px}
 #jason-simple-routines .jr-preview-medium{display:flex;align-items:center;justify-content:center;gap:8px}
 #jason-simple-routines .jr-preview-medium img{width:60px;height:68px;object-fit:contain;border-radius:9px}
 #jason-simple-routines .jr-preview-goal{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -45,7 +45,7 @@
 #jason-simple-routines #jr-theme-save{background:var(--jr-green);color:var(--jr-on)}
 #jason-simple-routines .jr-save-note{font-size:13px;padding:9px 12px;border-radius:10px;background:var(--jr-panel);border:1px solid var(--jr-line);margin:8px 0}
 #jason-simple-routines .jr-backup-help{font-size:13px;line-height:1.6}
-#jason-simple-routines .jr-journey-gallery .jr-collection-art>*{width:46px;height:55px;object-fit:contain}
+#jason-simple-routines .jr-journey-gallery .jr-collection-art>*{width:46px;height:55px;object-fit:contain;flex:0 0 46px}
 #jason-simple-routines .jr-journey-gallery .jr-collection-card{min-height:95px}
 #jason-simple-routines .jr-app[data-decoration-density=none] .jr-medium-photos,#jason-simple-routines .jr-app[data-decoration-density=header] .jr-medium-photos{display:none}
 @media(max-width:380px){#jason-simple-routines .jr-art-pair>.jr-inset-art{max-width:58px}#jason-simple-routines .jr-art-pair>.jr-inset-art>*:nth-child(2){display:none}}
