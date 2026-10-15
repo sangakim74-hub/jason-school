@@ -961,6 +961,7 @@ const primary37=more36;
 primary37.id='jr-primary-nav';
 primary37.setAttribute('aria-label','Main menu · 주요 메뉴');
 flowNav36.before(primary37);
+primary37.after(q('#jr-child-customize-host'));
 const week37=document.createElement('button');week37.type='button';week37.dataset.flowDetail='week';
 primary37.querySelector('[data-flow-detail="points"]').before(week37);
 const activity37=document.createElement('button');activity37.type='button';activity37.dataset.flowDetail='activities';
@@ -998,7 +999,7 @@ function navigate37(id){
   else if(id==='settings'){q('#jr-local-customize').click();}
   else{pageOld36(id);q('#jr-child').hidden=false;q('#jr-mom').hidden=true;}
  }
- labels37();
+ labels37();maskUnloaded36();
 }
 primary37.querySelectorAll('button').forEach(b=>b.onclick=()=>navigate37(b.dataset.flowDetail));
 const renderFlowBefore37=renderFlow36;
